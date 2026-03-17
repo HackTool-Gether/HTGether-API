@@ -1,0 +1,369 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum PlatformRole {
+  SUPER_ADMIN
+  USER
+}
+
+enum ProjectRole {
+  MANAGER
+  PENTESTER
+  CLIENT
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  IN_REVIEW
+  DELIVERED
+  ARCHIVED
+}
+
+enum ScopeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  IN_REVIEW
+}
+
+enum ComponentStatus {
+  COMPLIANT
+  REMARK
+  VULNERABLE
+  UNTESTED
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum FindingStatus {
+  DRAFT
+  CONFIRMED
+  FALSE_POSITIVE
+  FIXED
+}
+
+enum AuditType {
+  WEB
+  INTERNAL_AD
+  LINUX
+  MOBILE
+  OTHER
+}
+
+enum AuthProviderType {
+  LOCAL
+  OIDC
+  LDAP
+  SAML
+}
+
+// ==================== MODELS ====================
+
+model AuthProvider {
+  id          String           @id @default(uuid())
+  type        AuthProviderType
+  name        String           // Display name (e.g. "Google", "Azure AD", "Company LDAP")
+  isEnabled   Boolean          @default(false)
+  config      Json             @default("{}")
+  displayOrder Int             @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([type, name])
+  @@map("auth_providers")
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  password     String?
+  firstName    String
+  lastName     String
+  role         PlatformRole     @default(USER)
+  isActive     Boolean          @default(true)
+  authProvider AuthProviderType @default(LOCAL)
+  externalId   String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  projectMembers ProjectMember[]
+  notes          Note[]
+  findings       Finding[]
+  sentMessages   Message[]       @relation("SentMessages")
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model Project {
+  id            String        @id @default(uuid())
+  name          String
+  clientCompany String
+  clientNeed    String
+  context       String
+  startDate     DateTime
+  endDate       DateTime
+  status        ProjectStatus @default(DRAFT)
+  auditType     AuditType
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  templateId String?
+  template   ReportTemplate? @relation(fields: [templateId], references: [id])
+
+  members       ProjectMember[]
+  scopes        Scope[]
+  attackChains  AttackChain[]
+  conversations Conversation[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id       String      @id @default(uuid())
+  role     ProjectRole
+  joinedAt DateTime    @default(now())
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  scopeAssignments ScopeAssignment[]
+
+  @@unique([userId, projectId])
+  @@map("project_members")
+}
+
+model Scope {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  status      ScopeStatus @default(NOT_STARTED)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  components       Component[]
+  notes            Note[]
+  scopeAssignments ScopeAssignment[]
+
+  @@map("scopes")
+}
+
+model ScopeAssignment {
+  id         String   @id @default(uuid())
+  assignedAt DateTime @default(now())
+
+  scopeId  String
+  scope    Scope         @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+  memberId String
+  member   ProjectMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([scopeId, memberId])
+  @@map("scope_assignments")
+}
+
+model Component {
+  id          String          @id @default(uuid())
+  name        String
+  type        String?
+  status      ComponentStatus @default(UNTESTED)
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  scopeId String
+  scope   Scope @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  findings Finding[]
+
+  @@map("components")
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scopeId  String
+  scope    Scope @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User  @relation(fields: [authorId], references: [id])
+
+  findings    Finding[]
+  attachments Attachment[]
+
+  @@map("notes")
+}
+
+model Finding {
+  id          String        @id @default(uuid())
+  title       String
+  severity    Severity
+  cvssScore   Float?
+  cvssVector  String?
+  description String
+  proof       String?
+  impact      String?
+  remediation String?
+  references  String?
+  status      FindingStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  noteId      String?
+  note        Note?      @relation(fields: [noteId], references: [id])
+  componentId String?
+  component   Component? @relation(fields: [componentId], references: [id])
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+
+  attackChains AttackChainFinding[]
+  attachments  Attachment[]
+
+  @@map("findings")
+}
+
+model AttackChain {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  findings AttackChainFinding[]
+
+  @@map("attack_chains")
+}
+
+model AttackChainFinding {
+  id    String @id @default(uuid())
+  order Int
+
+  attackChainId String
+  attackChain   AttackChain @relation(fields: [attackChainId], references: [id], onDelete: Cascade)
+  findingId     String
+  finding       Finding     @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@unique([attackChainId, findingId])
+  @@map("attack_chain_findings")
+}
+
+model ReportTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  htmlContent String
+  cssContent  String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects Project[]
+  assets   TemplateAsset[]
+
+  @@map("report_templates")
+}
+
+model TemplateAsset {
+  id       String @id @default(uuid())
+  fileName String
+  filePath String
+  type     String
+
+  templateId String
+  template   ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("template_assets")
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  memberId  String
+
+  messages Message[]
+
+  @@unique([projectId, memberId])
+  @@map("conversations")
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  content   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  attachments Attachment[]
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  type      String
+  content   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  fileName  String
+  filePath  String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  noteId    String?
+  note      Note?    @relation(fields: [noteId], references: [id])
+  findingId String?
+  finding   Finding? @relation(fields: [findingId], references: [id])
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id])
+
+  @@map("attachments")
+}
+
+model PlatformSettings {
+  key   String @id
+  value Json
+
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
