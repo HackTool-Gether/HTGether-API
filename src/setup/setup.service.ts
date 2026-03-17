@@ -140,6 +140,19 @@ export class SetupService implements OnModuleInit {
         },
       });
       this.logger.log(`Super Admin created via onboarding: ${dto.admin.email}`);
+    } else {
+      // Update existing super admin with onboarding credentials
+      const hashedPassword = await bcrypt.hash(dto.admin.password, SALT_ROUNDS);
+      superAdmin = await this.prisma.user.update({
+        where: { id: superAdmin.id },
+        data: {
+          email: dto.admin.email,
+          password: hashedPassword,
+          firstName: dto.admin.firstName,
+          lastName: dto.admin.lastName,
+        },
+      });
+      this.logger.log(`Super Admin updated via onboarding: ${dto.admin.email}`);
     }
 
     // 2. Save company settings

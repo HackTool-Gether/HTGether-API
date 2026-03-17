@@ -8,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { AuthProviderType } from '@prisma/client';
+import { AuthProviderType, PlatformRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthProvidersService } from '../auth-providers/auth-providers.service';
 import { LoginDto } from './dto/login.dto';
@@ -26,18 +26,20 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    // Check if local auth is enabled
-    const localProvider = await this.authProvidersService.getProviderConfig(AuthProviderType.LOCAL);
-    if (!localProvider) {
-      throw new ForbiddenException('Local authentication is disabled');
-    }
-
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Allow SUPER_ADMIN to always login with credentials, even if local auth is disabled
+    if (user.role !== PlatformRole.SUPER_ADMIN) {
+      const localProvider = await this.authProvidersService.getProviderConfig(AuthProviderType.LOCAL);
+      if (!localProvider) {
+        throw new ForbiddenException('Local authentication is disabled');
+      }
     }
 
     if (!user.isActive) {
