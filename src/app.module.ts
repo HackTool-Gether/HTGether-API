@@ -6,6 +6,9 @@ import { UsersModule } from './users/users.module';
 import { SetupModule } from './setup/setup.module';
 import { AuthProvidersModule } from './auth-providers/auth-providers.module';
 import { SettingsModule } from './settings/settings.module';
+import { ProjectsModule } from './projects/projects.module';
+import { ScopesModule } from './scopes/scopes.module';
+import { NotesModule } from './notes/notes.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { SettingsModule } from './settings/settings.module';
     SetupModule,
     AuthProvidersModule,
     SettingsModule,
+    ProjectsModule,
+    ScopesModule,
+    NotesModule,
   ],
 })
 export class AppModule {}

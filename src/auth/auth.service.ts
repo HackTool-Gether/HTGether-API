@@ -230,32 +230,23 @@ export class AuthService {
   ) {
     let user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (user) {
-      if (!user.isActive) {
-        throw new ForbiddenException('Account is deactivated');
-      }
-      // Update external ID if not set
-      if (!user.externalId) {
-        user = await this.prisma.user.update({
-          where: { id: user.id },
-          data: { externalId, authProvider },
-        });
-      }
-      return user;
+    if (!user) {
+      throw new ForbiddenException('Aucun compte associé à cet email. Contactez votre administrateur.');
     }
 
-    // Create new user from SSO (no password)
-    user = await this.prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        authProvider,
-        externalId,
-      },
-    });
+    if (!user.isActive) {
+      throw new ForbiddenException('Account is deactivated');
+    }
 
-    this.logger.log(`User created via ${authProvider}: ${email}`);
+    // SSO login: update external ID + clear mustChangePassword
+    const needsUpdate = !user.externalId || user.mustChangePassword;
+    if (needsUpdate) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { externalId, authProvider, mustChangePassword: false },
+      });
+    }
+
     return user;
   }
 
@@ -289,6 +280,7 @@ export class AuthService {
         lastName: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
         authProvider: true,
         createdAt: true,
       },
@@ -299,6 +291,32 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.password) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+
+    // Check new password is different from current
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
+      throw new BadRequestException('Le nouveau mot de passe doit être différent de l\'ancien');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword, mustChangePassword: false },
+    });
+
+    return this.buildAuthResponse(updated);
   }
 
   private async buildAuthResponse(user: any) {
@@ -315,6 +333,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        mustChangePassword: user.mustChangePassword || false,
       },
       ...tokens,
     };

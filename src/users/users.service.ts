@@ -4,10 +4,27 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
 const SALT_ROUNDS = 12;
+
+function generatePassword(): string {
+  // 12 chars: letters + digits + special chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const special = '!@#$%&*';
+  let password = '';
+  for (let i = 0; i < 10; i++) {
+    password += chars[crypto.randomInt(chars.length)];
+  }
+  // Insert 2 special chars at random positions
+  for (let i = 0; i < 2; i++) {
+    const pos = crypto.randomInt(password.length + 1);
+    password = password.slice(0, pos) + special[crypto.randomInt(special.length)] + password.slice(pos);
+  }
+  return password;
+}
 
 @Injectable()
 export class UsersService {
@@ -22,12 +39,17 @@ export class UsersService {
       throw new ConflictException('A user with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    const plainPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
 
     const user = await this.prisma.user.create({
       data: {
-        ...dto,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: dto.role,
         password: hashedPassword,
+        mustChangePassword: true,
       },
       select: {
         id: true,
@@ -40,7 +62,8 @@ export class UsersService {
       },
     });
 
-    return user;
+    // Return user + plain password so admin can share it
+    return { ...user, generatedPassword: plainPassword };
   }
 
   async findAll() {
