@@ -1,0 +1,5 @@
+ignore:
+  - vulnerability: GHSA-cxww-7g56-2vh6
+    package:
+      name: actions/download-artifact
+      type: github-action
