@@ -9,6 +9,8 @@ import { SettingsModule } from './settings/settings.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ScopesModule } from './scopes/scopes.module';
 import { NotesModule } from './notes/notes.module';
+import { FindingsModule } from './findings/findings.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { NotesModule } from './notes/notes.module';
     ProjectsModule,
     ScopesModule,
     NotesModule,
+    FindingsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

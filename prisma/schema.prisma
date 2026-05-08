@@ -129,10 +129,24 @@ model Project {
 
   members       ProjectMember[]
   scopes        Scope[]
+  findings      Finding[]
   attackChains  AttackChain[]
   conversations Conversation[]
+  report        Report?
 
   @@map("projects")
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  content   Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
 }
 
 model ProjectMember {
@@ -219,19 +233,23 @@ model Note {
 
 model Finding {
   id          String        @id @default(uuid())
+  slug        String?       // human-friendly identifier within project (e.g. ACME-001)
   title       String
   severity    Severity
   cvssScore   Float?
   cvssVector  String?
-  description String
+  description String        @default("")
   proof       String?
   impact      String?
   remediation String?
   references  String?
+  tags        String?       // comma-separated tags
   status      FindingStatus @default(DRAFT)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   noteId      String?
   note        Note?      @relation(fields: [noteId], references: [id])
   componentId String?
@@ -242,6 +260,7 @@ model Finding {
   attackChains AttackChainFinding[]
   attachments  Attachment[]
 
+  @@index([projectId])
   @@map("findings")
 }
 
