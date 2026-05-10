@@ -90,11 +90,28 @@ export class SetupService implements OnModuleInit {
       where: { role: PlatformRole.SUPER_ADMIN },
     });
 
-    if (existing) {
-      throw new ForbiddenException('Setup has already been completed');
-    }
-
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
+
+    if (existing) {
+      const user = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          email: dto.email,
+          password: hashedPassword,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+      return { message: 'Setup complete', user };
+    }
 
     const user = await this.prisma.user.create({
       data: {
