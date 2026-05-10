@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: htgether
+      POSTGRES_PASSWORD: htgether
+      POSTGRES_DB: htgether
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U htgether"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://htgether:htgether@db:5432/htgether?schema=public
+      SUPER_ADMIN_EMAIL: ""
+      SUPER_ADMIN_PASSWORD: ""
+    depends_on:
+      db:
+        condition: service_healthy
+
+  studio:
+    build: .
+    command: npx prisma studio
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: postgresql://htgether:htgether@db:5432/htgether?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

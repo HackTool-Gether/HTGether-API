@@ -97,6 +97,8 @@ model User {
   role         PlatformRole     @default(USER)
   isActive           Boolean          @default(true)
   mustChangePassword Boolean          @default(false)
+  onboardingCompleted Boolean         @default(false)
+  onboardingStep      Int             @default(0)
   authProvider       AuthProviderType @default(LOCAL)
   externalId         String?
   createdAt    DateTime         @default(now())

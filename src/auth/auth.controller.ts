@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Query, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { OidcCallbackDto } from './dto/oidc-callback.dto';
 import { LdapLoginDto } from './dto/ldap-login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -53,5 +54,11 @@ export class AuthController {
   @Post('change-password')
   async changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('onboarding')
+  async updateOnboarding(@CurrentUser('id') userId: string, @Body() dto: UpdateOnboardingDto) {
+    return this.authService.updateOnboarding(userId, dto);
   }
 }

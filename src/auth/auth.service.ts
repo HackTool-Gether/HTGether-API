@@ -12,6 +12,7 @@ import { AuthProviderType, PlatformRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthProvidersService } from '../auth-providers/auth-providers.service';
 import { LoginDto } from './dto/login.dto';
+import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
@@ -281,6 +282,8 @@ export class AuthService {
         role: true,
         isActive: true,
         mustChangePassword: true,
+        onboardingCompleted: true,
+        onboardingStep: true,
         authProvider: true,
         createdAt: true,
       },
@@ -289,6 +292,28 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+
+    return user;
+  }
+
+  async updateOnboarding(userId: string, dto: UpdateOnboardingDto) {
+    const data: any = {};
+    if (dto.step !== undefined) {
+      data.onboardingStep = dto.step;
+    }
+    if (dto.completed !== undefined) {
+      data.onboardingCompleted = dto.completed;
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        onboardingCompleted: true,
+        onboardingStep: true,
+      },
+    });
 
     return user;
   }
@@ -334,6 +359,8 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         mustChangePassword: user.mustChangePassword || false,
+        onboardingCompleted: user.onboardingCompleted ?? false,
+        onboardingStep: user.onboardingStep ?? 0,
       },
       ...tokens,
     };
