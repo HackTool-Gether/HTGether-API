@@ -28,8 +28,12 @@
 
 These steps are NON-NEGOTIABLE. A commit that breaks CI is unacceptable.
 
-1. **Pre-commit hooks** — Run `pre-commit run --all-files`. Fix ALL failures (trailing whitespace, EOF, yamllint, markdownlint, gitleaks, shellcheck, build). Do NOT commit until every hook passes.
-2. **Grype SCA scan** — Run `grype dir:. --fail-on high`. If any High or Critical vulnerability is found, fix it (update dependency, add override) BEFORE committing. Medium/Low are acceptable.
+1. **Pre-commit hooks** — Run `pre-commit run --all-files`.
+   Fix ALL failures (trailing whitespace, EOF, yamllint, markdownlint,
+   gitleaks, shellcheck, build). Do NOT commit until every hook passes.
+2. **Grype SCA scan** — Run `grype dir:. --fail-on high`.
+   If any High or Critical vulnerability is found, fix it
+   (update dependency, add override) BEFORE committing. Medium/Low are acceptable.
 3. **TypeScript** — Run `npx tsc --noEmit` to verify no type errors.
 
 If any of these 3 checks fail, DO NOT commit. Fix the issue first.
