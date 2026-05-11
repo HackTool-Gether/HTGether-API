@@ -1,5 +1,4 @@
-import { Injectable, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PlatformRole, AuthProviderType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,53 +28,13 @@ const SSO_PRESETS: Record<string, { name: string; issuerUrl: string; scope: stri
 };
 
 @Injectable()
-export class SetupService implements OnModuleInit {
+export class SetupService {
   private readonly logger = new Logger(SetupService.name);
 
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
     private settingsService: SettingsService,
   ) {}
-
-  async onModuleInit() {
-    await this.seedSuperAdminFromEnv();
-  }
-
-  private async seedSuperAdminFromEnv() {
-    const email = this.config.get<string>('SUPER_ADMIN_EMAIL');
-    const password = this.config.get<string>('SUPER_ADMIN_PASSWORD');
-    const firstName = this.config.get<string>('SUPER_ADMIN_FIRSTNAME') || 'Super';
-    const lastName = this.config.get<string>('SUPER_ADMIN_LASTNAME') || 'Admin';
-
-    if (!email || !password) {
-      this.logger.log('No SUPER_ADMIN env vars set, skipping auto-seed');
-      return;
-    }
-
-    const existing = await this.prisma.user.findFirst({
-      where: { role: PlatformRole.SUPER_ADMIN },
-    });
-
-    if (existing) {
-      this.logger.log('Super Admin already exists, skipping seed');
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-    await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: PlatformRole.SUPER_ADMIN,
-      },
-    });
-
-    this.logger.log(`Super Admin created: ${email}`);
-  }
 
   async isSetupComplete(): Promise<{ isSetup: boolean; onboardingComplete: boolean }> {
     const superAdmin = await this.prisma.user.findFirst({
@@ -131,7 +90,26 @@ export class SetupService implements OnModuleInit {
       },
     });
 
+    await this.ensureLocalProvider();
+
     return { message: 'Setup complete', user };
+  }
+
+  private async ensureLocalProvider() {
+    const existing = await this.prisma.authProvider.findFirst({
+      where: { type: AuthProviderType.LOCAL },
+    });
+    if (!existing) {
+      await this.prisma.authProvider.create({
+        data: {
+          type: AuthProviderType.LOCAL,
+          name: 'Email & Password',
+          isEnabled: true,
+          displayOrder: 0,
+          config: {},
+        },
+      });
+    }
   }
 
   async completeOnboarding(dto: OnboardingDto) {
@@ -183,10 +161,16 @@ export class SetupService implements OnModuleInit {
 
     for (const provider of dto.auth.providers) {
       if (provider.type === 'LOCAL') {
-        // Update local provider status
-        await this.prisma.authProvider.updateMany({
-          where: { type: AuthProviderType.LOCAL },
-          data: { isEnabled: provider.enabled },
+        await this.prisma.authProvider.upsert({
+          where: { type_name: { type: AuthProviderType.LOCAL, name: 'Email & Password' } },
+          update: { isEnabled: provider.enabled },
+          create: {
+            type: AuthProviderType.LOCAL,
+            name: 'Email & Password',
+            isEnabled: provider.enabled,
+            displayOrder: 0,
+            config: {},
+          },
         });
       } else if (provider.type === 'CUSTOM_OIDC') {
         // Custom OIDC

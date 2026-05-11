@@ -1,37 +1,12 @@
-import { Injectable, OnModuleInit, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuthProviderType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAuthProviderDto } from './dto/create-auth-provider.dto';
 import { UpdateAuthProviderDto } from './dto/update-auth-provider.dto';
 
 @Injectable()
-export class AuthProvidersService implements OnModuleInit {
-  private readonly logger = new Logger(AuthProvidersService.name);
-
+export class AuthProvidersService {
   constructor(private prisma: PrismaService) {}
-
-  async onModuleInit() {
-    await this.seedDefaultLocalProvider();
-  }
-
-  private async seedDefaultLocalProvider() {
-    const existing = await this.prisma.authProvider.findFirst({
-      where: { type: AuthProviderType.LOCAL },
-    });
-
-    if (!existing) {
-      await this.prisma.authProvider.create({
-        data: {
-          type: AuthProviderType.LOCAL,
-          name: 'Email & Password',
-          isEnabled: true,
-          displayOrder: 0,
-          config: {},
-        },
-      });
-      this.logger.log('Default LOCAL auth provider created');
-    }
-  }
 
   async findAll() {
     return this.prisma.authProvider.findMany({
