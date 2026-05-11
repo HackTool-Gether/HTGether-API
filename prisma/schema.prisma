@@ -72,6 +72,20 @@ enum AuthProviderType {
   SAML
 }
 
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // ==================== MODELS ====================
 
 model AuthProvider {
@@ -107,6 +121,7 @@ model User {
   projectMembers ProjectMember[]
   notes          Note[]
   findings       Finding[]
+  createdTasks   Task[]
   sentMessages   Message[]       @relation("SentMessages")
   notifications  Notification[]
 
@@ -129,9 +144,13 @@ model Project {
   templateId String?
   template   ReportTemplate? @relation(fields: [templateId], references: [id])
 
+  rolePermissions Json @default("{}")
+  kanbanConfig    Json @default("{}")
+
   members       ProjectMember[]
   scopes        Scope[]
   findings      Finding[]
+  tasks         Task[]
   attackChains  AttackChain[]
   conversations Conversation[]
   report        Report?
@@ -151,6 +170,28 @@ model Report {
   @@map("reports")
 }
 
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(BACKLOG)
+  priority    TaskPriority @default(MEDIUM)
+  position    Int          @default(0)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  assignee   ProjectMember? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  creatorId  String
+  creator    User           @relation(fields: [creatorId], references: [id])
+
+  @@index([projectId, status])
+  @@map("tasks")
+}
+
 model ProjectMember {
   id       String      @id @default(uuid())
   role     ProjectRole
@@ -162,6 +203,7 @@ model ProjectMember {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   scopeAssignments ScopeAssignment[]
+  tasks            Task[]
 
   @@unique([userId, projectId])
   @@map("project_members")

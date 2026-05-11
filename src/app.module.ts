@@ -11,6 +11,7 @@ import { ScopesModule } from './scopes/scopes.module';
 import { NotesModule } from './notes/notes.module';
 import { FindingsModule } from './findings/findings.module';
 import { ReportsModule } from './reports/reports.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ReportsModule } from './reports/reports.module';
     NotesModule,
     FindingsModule,
     ReportsModule,
+    TasksModule,
   ],
 })
 export class AppModule {}
