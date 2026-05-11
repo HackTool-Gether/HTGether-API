@@ -122,7 +122,9 @@ model User {
   notes          Note[]
   findings       Finding[]
   createdTasks   Task[]
-  sentMessages   Message[]       @relation("SentMessages")
+  sentMessages         Message[]        @relation("SentMessages")
+  conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
   notifications  Notification[]
 
   @@map("users")
@@ -365,22 +367,26 @@ model TemplateAsset {
 model Conversation {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  memberId  String
+
+  user1Id String
+  user1   User @relation("ConversationUser1", fields: [user1Id], references: [id])
+  user2Id String
+  user2   User @relation("ConversationUser2", fields: [user2Id], references: [id])
 
   messages Message[]
 
-  @@unique([projectId, memberId])
+  @@unique([projectId, user1Id, user2Id])
   @@map("conversations")
 }
 
 model Message {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   content   String
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -389,6 +395,7 @@ model Message {
 
   attachments Attachment[]
 
+  @@index([conversationId, createdAt])
   @@map("messages")
 }
 
