@@ -61,6 +61,7 @@ export class SetupService {
           password: hashedPassword,
           firstName: dto.firstName,
           lastName: dto.lastName,
+          onboardingCompleted: true,
         },
         select: {
           id: true,
@@ -81,6 +82,7 @@ export class SetupService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: PlatformRole.SUPER_ADMIN,
+        onboardingCompleted: true,
       },
       select: {
         id: true,
@@ -134,11 +136,11 @@ export class SetupService {
           firstName: dto.admin.firstName,
           lastName: dto.admin.lastName,
           role: PlatformRole.SUPER_ADMIN,
+          onboardingCompleted: true,
         },
       });
       this.logger.log(`Super Admin created via onboarding: ${dto.admin.email}`);
     } else {
-      // Update existing super admin with onboarding credentials
       const hashedPassword = await bcrypt.hash(dto.admin.password, SALT_ROUNDS);
       superAdmin = await this.prisma.user.update({
         where: { id: superAdmin.id },
@@ -147,6 +149,7 @@ export class SetupService {
           password: hashedPassword,
           firstName: dto.admin.firstName,
           lastName: dto.admin.lastName,
+          onboardingCompleted: true,
         },
       });
       this.logger.log(`Super Admin updated via onboarding: ${dto.admin.email}`);
