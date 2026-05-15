@@ -9,7 +9,7 @@ import { OnboardingDto } from './dto/onboarding.dto';
 const SALT_ROUNDS = 12;
 
 // Map onboarding provider types to OIDC configs
-const SSO_PRESETS: Record<string, { name: string; issuerUrl: string; scope: string }> = {
+const SSO_PRESETS: Record<string, { name: string; issuerUrl?: string; scope: string; authorizationUrl?: string; tokenUrl?: string; userinfoUrl?: string }> = {
   GOOGLE: {
     name: 'Google',
     issuerUrl: 'https://accounts.google.com',
@@ -17,8 +17,10 @@ const SSO_PRESETS: Record<string, { name: string; issuerUrl: string; scope: stri
   },
   GITHUB: {
     name: 'GitHub',
-    issuerUrl: 'https://token.actions.githubusercontent.com',
-    scope: 'openid email profile',
+    authorizationUrl: 'https://github.com/login/oauth/authorize',
+    tokenUrl: 'https://github.com/login/oauth/access_token',
+    userinfoUrl: 'https://api.github.com/user',
+    scope: 'user:email read:user',
   },
   AZURE_AD: {
     name: 'Azure AD',
@@ -186,17 +188,21 @@ export class SetupService {
       } else if (SSO_PRESETS[provider.type]) {
         // Preset SSO (Google, GitHub, Azure AD)
         const preset = SSO_PRESETS[provider.type];
+        const presetConfig: Record<string, any> = {
+          scope: preset.scope,
+          clientId: provider.config?.clientId || '',
+          clientSecret: provider.config?.clientSecret || '',
+        };
+        if (preset.issuerUrl) presetConfig.issuerUrl = preset.issuerUrl;
+        if (preset.authorizationUrl) presetConfig.authorizationUrl = preset.authorizationUrl;
+        if (preset.tokenUrl) presetConfig.tokenUrl = preset.tokenUrl;
+        if (preset.userinfoUrl) presetConfig.userinfoUrl = preset.userinfoUrl;
         await this.prisma.authProvider.create({
           data: {
             type: AuthProviderType.OIDC,
             name: preset.name,
             isEnabled: provider.enabled,
-            config: {
-              issuerUrl: preset.issuerUrl,
-              scope: preset.scope,
-              clientId: provider.config?.clientId || '',
-              clientSecret: provider.config?.clientSecret || '',
-            },
+            config: presetConfig,
             displayOrder: 5,
           },
         });

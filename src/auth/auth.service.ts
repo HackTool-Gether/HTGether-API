@@ -63,6 +63,19 @@ export class AuthService {
     }
 
     const config = provider.config as any;
+
+    // OAuth2 providers without OIDC discovery (e.g. GitHub)
+    if (config.authorizationUrl) {
+      const state = crypto.randomUUID();
+      const url = new URL(config.authorizationUrl);
+      url.searchParams.set('client_id', config.clientId);
+      url.searchParams.set('redirect_uri', callbackUrl);
+      url.searchParams.set('scope', config.scope || 'user:email');
+      url.searchParams.set('state', state);
+      return { authUrl: url.href, providerId };
+    }
+
+    // Standard OIDC discovery
     const oidc = await import('openid-client');
     const oidcConfig = await oidc.discovery(
       new URL(config.issuerUrl),
@@ -86,6 +99,13 @@ export class AuthService {
     }
 
     const config = provider.config as any;
+
+    // OAuth2 providers without OIDC discovery (e.g. GitHub)
+    if (config.tokenUrl) {
+      return this.handleOAuth2Callback(config, currentUrl, redirectUri);
+    }
+
+    // Standard OIDC flow
     const oidc = await import('openid-client');
     const oidcConfig = await oidc.discovery(
       new URL(config.issuerUrl),
@@ -125,6 +145,80 @@ export class AuthService {
       return this.buildAuthResponse(user);
     } catch (err) {
       this.logger.error(`OIDC callback error: ${err.message}`, err.stack);
+      throw new UnauthorizedException(`SSO authentication failed: ${err.message}`);
+    }
+  }
+
+  private async handleOAuth2Callback(
+    config: { tokenUrl: string; userinfoUrl: string; clientId: string; clientSecret: string },
+    currentUrl: string,
+    redirectUri: string,
+  ) {
+    try {
+      const url = new URL(currentUrl);
+      const code = url.searchParams.get('code');
+      if (!code) {
+        throw new UnauthorizedException('No authorization code in callback');
+      }
+
+      // Exchange code for access token
+      const tokenRes = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          code,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+      const accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new UnauthorizedException('Failed to obtain access token');
+      }
+
+      // Fetch user profile
+      const userRes = await fetch(config.userinfoUrl, {
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+      });
+      const profile = await userRes.json();
+
+      // Fetch email (GitHub may not include it in the profile)
+      let email = profile.email;
+      if (!email && config.userinfoUrl.includes('github.com')) {
+        const emailsRes = await fetch('https://api.github.com/user/emails', {
+          headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+        });
+        const emails = await emailsRes.json();
+        const primary = emails.find((e: any) => e.primary && e.verified);
+        email = primary?.email || emails[0]?.email;
+      }
+
+      if (!email) {
+        throw new UnauthorizedException('OAuth provider did not return an email');
+      }
+
+      const firstName = profile.name?.split(' ')[0] || profile.login || 'User';
+      const lastName = profile.name?.split(' ').slice(1).join(' ') || '';
+      const externalId = String(profile.id || profile.sub);
+
+      const user = await this.findOrCreateExternalUser(
+        email,
+        firstName,
+        lastName,
+        AuthProviderType.OIDC,
+        externalId,
+      );
+
+      return this.buildAuthResponse(user);
+    } catch (err) {
+      this.logger.error(`OAuth2 callback error: ${err.message}`, err.stack);
+      if (err instanceof UnauthorizedException || err instanceof ForbiddenException) throw err;
       throw new UnauthorizedException(`SSO authentication failed: ${err.message}`);
     }
   }
