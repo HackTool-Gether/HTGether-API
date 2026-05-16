@@ -6,6 +6,7 @@ import { OidcCallbackDto } from './dto/oidc-callback.dto';
 import { LdapLoginDto } from './dto/ldap-login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
+import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -60,5 +61,11 @@ export class AuthController {
   @Patch('onboarding')
   async updateOnboarding(@CurrentUser('id') userId: string, @Body() dto: UpdateOnboardingDto) {
     return this.authService.updateOnboarding(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('avatar')
+  async updateAvatar(@CurrentUser('id') userId: string, @Body() dto: UpdateAvatarDto) {
+    return this.authService.updateAvatar(userId, dto);
   }
 }

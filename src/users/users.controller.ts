@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Param,
   Body,
@@ -10,6 +11,7 @@ import {
 import { PlatformRole } from '@prisma/client';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,6 +37,18 @@ export class UsersController {
   @Roles(PlatformRole.SUPER_ADMIN)
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Put(':id')
+  @Roles(PlatformRole.SUPER_ADMIN)
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(id, dto);
+  }
+
+  @Post(':id/reset-password')
+  @Roles(PlatformRole.SUPER_ADMIN)
+  async resetPassword(@Param('id') id: string) {
+    return this.usersService.resetPassword(id);
   }
 
   @Patch(':id/toggle-active')

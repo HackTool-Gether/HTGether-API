@@ -28,6 +28,12 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 enum ScopeStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -115,6 +121,10 @@ model User {
   onboardingStep      Int             @default(0)
   authProvider       AuthProviderType @default(LOCAL)
   externalId         String?
+  platformPermissions Json           @default("{}")
+  avatarStyle  String           @default("adventurer")
+  avatarSeed   String           @default("")
+  avatarOptions Json            @default("{}")
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -126,6 +136,8 @@ model User {
   conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
   conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
   notifications  Notification[]
+  invitations    Invitation[]     @relation("InvitedUser")
+  sentInvitations Invitation[]    @relation("InvitedBy")
 
   @@map("users")
 }
@@ -156,6 +168,7 @@ model Project {
   attackChains  AttackChain[]
   conversations Conversation[]
   report        Report?
+  invitations   Invitation[]
 
   @@map("projects")
 }
@@ -397,6 +410,24 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+model Invitation {
+  id        String           @id @default(uuid())
+  role      ProjectRole
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User   @relation("InvitedUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedById String
+  invitedBy   User   @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@map("invitations")
 }
 
 model Notification {

@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const SALT_ROUNDS = 12;
 
@@ -58,6 +59,9 @@ export class UsersService {
         lastName: true,
         role: true,
         isActive: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
         createdAt: true,
       },
     });
@@ -75,6 +79,10 @@ export class UsersService {
         lastName: true,
         role: true,
         isActive: true,
+        platformPermissions: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -91,6 +99,10 @@ export class UsersService {
         lastName: true,
         role: true,
         isActive: true,
+        platformPermissions: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
         createdAt: true,
         projectMembers: {
           select: {
@@ -113,6 +125,71 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existing) {
+        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      }
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+        ...(dto.lastName !== undefined && { lastName: dto.lastName }),
+        ...(dto.email !== undefined && { email: dto.email }),
+        ...(dto.role !== undefined && { role: dto.role }),
+        ...(dto.platformPermissions !== undefined && { platformPermissions: dto.platformPermissions }),
+        ...(dto.avatarStyle !== undefined && { avatarStyle: dto.avatarStyle }),
+        ...(dto.avatarSeed !== undefined && { avatarSeed: dto.avatarSeed }),
+        ...(dto.avatarOptions !== undefined && { avatarOptions: dto.avatarOptions }),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        platformPermissions: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async resetPassword(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    const plainPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+        mustChangePassword: true,
+      },
+    });
+
+    return { generatedPassword: plainPassword };
   }
 
   async toggleActive(id: string) {

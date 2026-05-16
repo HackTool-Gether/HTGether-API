@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthProvidersService } from '../auth-providers/auth-providers.service';
 import { LoginDto } from './dto/login.dto';
 import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
+import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
@@ -379,6 +380,9 @@ export class AuthService {
         onboardingCompleted: true,
         onboardingStep: true,
         authProvider: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
         createdAt: true,
       },
     });
@@ -410,6 +414,23 @@ export class AuthService {
     });
 
     return user;
+  }
+
+  async updateAvatar(userId: string, dto: UpdateAvatarDto) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarStyle: dto.avatarStyle,
+        avatarSeed: dto.avatarSeed,
+        avatarOptions: dto.avatarOptions || {},
+      },
+      select: {
+        id: true,
+        avatarStyle: true,
+        avatarSeed: true,
+        avatarOptions: true,
+      },
+    });
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -455,6 +476,9 @@ export class AuthService {
         mustChangePassword: user.mustChangePassword || false,
         onboardingCompleted: user.onboardingCompleted ?? false,
         onboardingStep: user.onboardingStep ?? 0,
+        avatarStyle: user.avatarStyle ?? 'adventurer',
+        avatarSeed: user.avatarSeed ?? '',
+        avatarOptions: user.avatarOptions ?? {},
       },
       ...tokens,
     };
