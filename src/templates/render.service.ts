@@ -49,7 +49,7 @@ export class RenderService {
       where: { id: projectId },
       include: {
         template: true,
-        report: true,
+        reports: true,
         findings: {
           include: {
             author: { select: { id: true, firstName: true, lastName: true } },
@@ -76,7 +76,8 @@ export class RenderService {
     if (!project) throw new NotFoundException('Projet introuvable');
     if (!project.template) throw new NotFoundException('Aucun template assigné à ce projet');
 
-    const reportData = (project.report?.content || {}) as ReportData;
+    const firstReport = (project as any).reports?.[0];
+    const reportData = (firstReport?.content || {}) as ReportData;
     const sections = reportData.sections || [];
     const customVars = reportData.variables || {};
 

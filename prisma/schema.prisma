@@ -167,7 +167,7 @@ model Project {
   tasks         Task[]
   attackChains  AttackChain[]
   conversations Conversation[]
-  report        Report?
+  reports       Report[]
   invitations   Invitation[]
 
   @@map("projects")
@@ -175,12 +175,15 @@ model Project {
 
 model Report {
   id        String   @id @default(uuid())
+  name      String   @default("Rapport principal")
   content   Json     @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projectId String  @unique
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId String?
+  template   ReportTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@map("reports")
 }
@@ -363,6 +366,7 @@ model ReportTemplate {
   updatedAt   DateTime @updatedAt
 
   projects Project[]
+  reports  Report[]
   assets   TemplateAsset[]
 
   @@map("report_templates")
