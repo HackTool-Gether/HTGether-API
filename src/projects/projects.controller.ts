@@ -6,6 +6,7 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
 import { UpdateKanbanConfigDto } from './dto/update-kanban-config.dto';
+import { CreateRemarkDto } from './dto/create-remark.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -80,5 +81,25 @@ export class ProjectsController {
     @CurrentUser() user: any,
   ) {
     return this.projectsService.updateKanbanConfig(id, dto, user.id, user.role);
+  }
+
+  @Get(':id/stats')
+  getStats(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.getStats(id, user.id, user.role);
+  }
+
+  @Get(':id/remarks')
+  getRemarks(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.getRemarks(id, user.id, user.role);
+  }
+
+  @Post(':id/remarks')
+  createRemark(@Param('id') id: string, @Body() dto: CreateRemarkDto, @CurrentUser() user: any) {
+    return this.projectsService.createRemark(id, dto, user.id, user.role);
+  }
+
+  @Delete(':id/remarks/:remarkId')
+  removeRemark(@Param('id') id: string, @Param('remarkId') remarkId: string, @CurrentUser() user: any) {
+    return this.projectsService.removeRemark(id, remarkId, user.id, user.role);
   }
 }

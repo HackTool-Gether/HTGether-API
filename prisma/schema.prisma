@@ -132,6 +132,7 @@ model User {
   notes          Note[]
   findings       Finding[]
   createdTasks   Task[]
+  projectRemarks ProjectRemark[]
   sentMessages         Message[]        @relation("SentMessages")
   conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
   conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
@@ -169,8 +170,24 @@ model Project {
   conversations Conversation[]
   reports       Report[]
   invitations   Invitation[]
+  remarks       ProjectRemark[]
 
   @@map("projects")
+}
+
+model ProjectRemark {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User   @relation(fields: [authorId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@map("project_remarks")
 }
 
 model Report {
