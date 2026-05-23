@@ -116,7 +116,8 @@ export class OnboardingSmtpDto {
 export class OnboardingDto {
   @ValidateNested()
   @Type(() => OnboardingAdminDto)
-  admin: OnboardingAdminDto;
+  @IsOptional()
+  admin?: OnboardingAdminDto;
 
   @ValidateNested()
   @Type(() => OnboardingCompanyDto)
