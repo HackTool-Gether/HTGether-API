@@ -353,8 +353,11 @@ model AttackChainFinding {
 model ReportTemplate {
   id          String   @id @default(uuid())
   name        String
-  htmlContent String
-  cssContent  String?
+  description String   @default("")
+  htmlContent String   @default("")
+  cssContent  String   @default("")
+  variables   Json     @default("[]")
+  previewData Json     @default("{}")
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
