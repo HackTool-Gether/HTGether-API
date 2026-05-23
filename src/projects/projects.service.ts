@@ -144,7 +144,8 @@ export class ProjectsService {
   // ── Global dashboard stats ──
 
   async getDashboardStats(userId: string, userRole: string) {
-    const where = userRole === PlatformRole.SUPER_ADMIN
+    const isAdmin = userRole === PlatformRole.SUPER_ADMIN;
+    const where = isAdmin
       ? {}
       : { members: { some: { userId } } };
 
@@ -154,17 +155,43 @@ export class ProjectsService {
     });
     const projectIds = projects.map((p) => p.id);
 
-    const [findings, tasks, recentFindings, recentTasks, users] = await Promise.all([
+    const memberIds = isAdmin ? [] : (
+      await this.prisma.projectMember.findMany({
+        where: { userId, projectId: { in: projectIds } },
+        select: { id: true },
+      })
+    ).map((m) => m.id);
+
+    const [findings, tasks, myTasks, activeTasks, recentFindings, recentTasks, users, teamCount] = await Promise.all([
       this.prisma.finding.findMany({
         where: { projectId: { in: projectIds } },
-        select: { severity: true, status: true },
+        select: { severity: true, status: true, authorId: true },
       }),
       this.prisma.task.findMany({
         where: { projectId: { in: projectIds } },
+        select: { status: true, assigneeId: true },
+      }),
+      isAdmin ? Promise.resolve([] as { status: string }[]) : this.prisma.task.findMany({
+        where: { projectId: { in: projectIds }, assigneeId: { in: memberIds } },
         select: { status: true },
       }),
+      isAdmin ? Promise.resolve([]) : this.prisma.task.findMany({
+        where: {
+          projectId: { in: projectIds },
+          assigneeId: { in: memberIds },
+          status: { in: ['BACKLOG', 'TODO', 'IN_PROGRESS'] },
+        },
+        select: {
+          id: true, title: true, status: true, priority: true, dueDate: true,
+          project: { select: { id: true, name: true } },
+        },
+        orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
+        take: 10,
+      }),
       this.prisma.finding.findMany({
-        where: { projectId: { in: projectIds } },
+        where: isAdmin
+          ? { projectId: { in: projectIds } }
+          : { projectId: { in: projectIds }, authorId: userId },
         select: {
           id: true, title: true, severity: true, createdAt: true,
           project: { select: { id: true, name: true } },
@@ -174,7 +201,9 @@ export class ProjectsService {
         take: 5,
       }),
       this.prisma.task.findMany({
-        where: { projectId: { in: projectIds }, status: 'DONE' },
+        where: isAdmin
+          ? { projectId: { in: projectIds }, status: 'DONE' }
+          : { projectId: { in: projectIds }, status: 'DONE', assigneeId: { in: memberIds } },
         select: {
           id: true, title: true, updatedAt: true,
           project: { select: { id: true, name: true } },
@@ -184,6 +213,11 @@ export class ProjectsService {
         take: 5,
       }),
       this.prisma.user.count({ where: { isActive: true } }),
+      isAdmin ? Promise.resolve(0) : this.prisma.projectMember.findMany({
+        where: { projectId: { in: projectIds } },
+        select: { userId: true },
+        distinct: ['userId'],
+      }).then((m) => m.length),
     ]);
 
     const activeProjects = projects.filter((p) => p.status === 'IN_PROGRESS' || p.status === 'IN_REVIEW');
@@ -194,14 +228,21 @@ export class ProjectsService {
       bySeverity[f.severity] = (bySeverity[f.severity] || 0) + 1;
     }
 
+    const myFindings = isAdmin ? null : openFindings.filter((f) => f.authorId === userId).length;
+
     const tasksDone = tasks.filter((t) => t.status === 'DONE').length;
     const tasksInProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
 
+    const myTasksDone = myTasks.filter((t) => t.status === 'DONE').length;
+    const myTasksInProgress = myTasks.filter((t) => t.status === 'IN_PROGRESS').length;
+
     return {
       projects: { total: projects.length, active: activeProjects.length },
-      findings: { open: openFindings.length, bySeverity },
+      findings: { open: openFindings.length, bySeverity, mine: myFindings },
       tasks: { total: tasks.length, done: tasksDone, inProgress: tasksInProgress },
+      myTasks: isAdmin ? null : { total: myTasks.length, done: myTasksDone, inProgress: myTasksInProgress },
       users: { active: users },
+      team: isAdmin ? null : teamCount,
       recentFindings: recentFindings.map((f) => ({
         id: f.id,
         title: f.title,
@@ -218,6 +259,15 @@ export class ProjectsService {
         projectId: t.project.id,
         assigneeName: t.assignee ? `${t.assignee.user.firstName} ${t.assignee.user.lastName}` : null,
         completedAt: t.updatedAt,
+      })),
+      activeTasks: isAdmin ? null : activeTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        dueDate: t.dueDate,
+        projectName: t.project.name,
+        projectId: t.project.id,
       })),
     };
   }
