@@ -88,6 +88,18 @@ export class RenderService {
             components: true,
           },
         },
+        attackChains: {
+          include: {
+            findings: {
+              include: {
+                finding: {
+                  select: { id: true, title: true, severity: true, slug: true, status: true },
+                },
+              },
+              orderBy: { order: 'asc' as const },
+            },
+          },
+        },
       },
     });
 
@@ -167,6 +179,24 @@ export class RenderService {
       findings_low: findingsData.filter((f) => f.severity === 'LOW').length,
       findings_info: findingsData.filter((f) => f.severity === 'INFO').length,
 
+      // Chaînes d'attaque
+      attack_chains: (project as any).attackChains.map((chain: any) => ({
+        name: chain.name,
+        description: chain.description || '',
+        description_html: chain.description
+          ? marked.parse(chain.description, { async: false })
+          : '',
+        findings: chain.findings.map((cf: any) => ({
+          order: cf.order + 1,
+          title: cf.finding.title,
+          severity: cf.finding.severity,
+          severity_lower: cf.finding.severity.toLowerCase(),
+          slug: cf.finding.slug || '',
+          status: cf.finding.status,
+        })),
+      })),
+      attack_chains_total: (project as any).attackChains.length,
+
       // Sections
       sections: sectionsData,
 
@@ -234,6 +264,18 @@ export class RenderService {
         },
       ],
       findings_total: 3, findings_critical: 1, findings_high: 1, findings_medium: 0, findings_low: 1, findings_info: 0,
+      attack_chains: [
+        {
+          name: 'Compromission complète via injection',
+          description: 'Exploitation de l\'injection SQL pour extraire les credentials, puis XSS pour voler la session admin.',
+          description_html: '<p>Exploitation de l\'injection SQL pour extraire les credentials, puis XSS pour voler la session admin.</p>',
+          findings: [
+            { order: 1, title: 'Injection SQL', severity: 'CRITICAL', severity_lower: 'critical', slug: 'ACME-001', status: 'CONFIRMED' },
+            { order: 2, title: 'XSS Réfléchi', severity: 'HIGH', severity_lower: 'high', slug: 'ACME-002', status: 'CONFIRMED' },
+          ],
+        },
+      ],
+      attack_chains_total: 1,
       sections: [
         { title: 'Synthèse', content_html: '<p>Ce rapport présente les résultats du test d\'intrusion réalisé sur l\'application web d\'Acme Corp.</p>' },
         { title: 'Méthodologie', content_html: '<p>L\'audit a suivi la méthodologie OWASP Testing Guide v4.</p>' },
