@@ -12,6 +12,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - htgether
 
   api:
     build: .
@@ -24,6 +26,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - htgether
 
   studio:
     build: .
@@ -35,6 +39,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - htgether
 
 volumes:
   pgdata:
+
+networks:
+  htgether:
+    name: htgether
+    driver: bridge
