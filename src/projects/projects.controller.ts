@@ -25,6 +25,11 @@ export class ProjectsController {
     return this.projectsService.findAll(user.id, user.role);
   }
 
+  @Get('dashboard-stats')
+  getDashboardStats(@CurrentUser() user: any) {
+    return this.projectsService.getDashboardStats(user.id, user.role);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.projectsService.findOne(id, user.id, user.role);

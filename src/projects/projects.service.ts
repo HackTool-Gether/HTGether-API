@@ -141,6 +141,87 @@ export class ProjectsService {
     });
   }
 
+  // ── Global dashboard stats ──
+
+  async getDashboardStats(userId: string, userRole: string) {
+    const where = userRole === PlatformRole.SUPER_ADMIN
+      ? {}
+      : { members: { some: { userId } } };
+
+    const projects = await this.prisma.project.findMany({
+      where,
+      select: { id: true, status: true },
+    });
+    const projectIds = projects.map((p) => p.id);
+
+    const [findings, tasks, recentFindings, recentTasks, users] = await Promise.all([
+      this.prisma.finding.findMany({
+        where: { projectId: { in: projectIds } },
+        select: { severity: true, status: true },
+      }),
+      this.prisma.task.findMany({
+        where: { projectId: { in: projectIds } },
+        select: { status: true },
+      }),
+      this.prisma.finding.findMany({
+        where: { projectId: { in: projectIds } },
+        select: {
+          id: true, title: true, severity: true, createdAt: true,
+          project: { select: { id: true, name: true } },
+          author: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.task.findMany({
+        where: { projectId: { in: projectIds }, status: 'DONE' },
+        select: {
+          id: true, title: true, updatedAt: true,
+          project: { select: { id: true, name: true } },
+          assignee: { select: { user: { select: { id: true, firstName: true, lastName: true } } } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.user.count({ where: { isActive: true } }),
+    ]);
+
+    const activeProjects = projects.filter((p) => p.status === 'IN_PROGRESS' || p.status === 'IN_REVIEW');
+
+    const bySeverity: Record<string, number> = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 };
+    const openFindings = findings.filter((f) => f.status !== 'FIXED' && f.status !== 'FALSE_POSITIVE');
+    for (const f of openFindings) {
+      bySeverity[f.severity] = (bySeverity[f.severity] || 0) + 1;
+    }
+
+    const tasksDone = tasks.filter((t) => t.status === 'DONE').length;
+    const tasksInProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+
+    return {
+      projects: { total: projects.length, active: activeProjects.length },
+      findings: { open: openFindings.length, bySeverity },
+      tasks: { total: tasks.length, done: tasksDone, inProgress: tasksInProgress },
+      users: { active: users },
+      recentFindings: recentFindings.map((f) => ({
+        id: f.id,
+        title: f.title,
+        severity: f.severity,
+        projectName: f.project.name,
+        projectId: f.project.id,
+        authorName: `${f.author.firstName} ${f.author.lastName}`,
+        createdAt: f.createdAt,
+      })),
+      recentTasks: recentTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        projectName: t.project.name,
+        projectId: t.project.id,
+        assigneeName: t.assignee ? `${t.assignee.user.firstName} ${t.assignee.user.lastName}` : null,
+        completedAt: t.updatedAt,
+      })),
+    };
+  }
+
   // ── Workload matrix ──
 
   async getWorkload(projectId: string, userId: string, userRole: string) {
