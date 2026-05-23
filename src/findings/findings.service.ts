@@ -7,10 +7,14 @@ import { PlatformRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFindingDto } from './dto/create-finding.dto';
 import { UpdateFindingDto } from './dto/update-finding.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class FindingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async create(
     projectId: string,
@@ -35,7 +39,7 @@ export class FindingsService {
       .slice(0, 16) || 'FIND';
     const slug = `${slugBase}-${String(count + 1).padStart(3, '0')}`;
 
-    return this.prisma.finding.create({
+    const finding = await this.prisma.finding.create({
       data: {
         title: dto.title,
         slug,
@@ -56,6 +60,23 @@ export class FindingsService {
       },
       include: this.includes(),
     });
+
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId, userId: { not: userId } },
+      include: { user: { select: { email: true } } },
+    });
+    const creatorName = `${finding.author.firstName} ${finding.author.lastName}`;
+    for (const member of members) {
+      this.mailService.sendFindingCreated(
+        member.user.email,
+        project.name,
+        finding.title,
+        finding.severity,
+        creatorName,
+      );
+    }
+
+    return finding;
   }
 
   async findAllByProject(projectId: string, userId: string, userRole: string) {

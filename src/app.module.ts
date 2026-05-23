@@ -15,11 +15,13 @@ import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { TemplatesModule } from './templates/templates.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsersModule,
     SetupModule,

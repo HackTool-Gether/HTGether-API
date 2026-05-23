@@ -8,10 +8,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { MoveTaskDto } from './dto/move-task.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async create(
     projectId: string,
@@ -26,7 +30,7 @@ export class TasksService {
       _max: { position: true },
     });
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -39,6 +43,12 @@ export class TasksService {
       },
       include: this.includes(),
     });
+
+    if (dto.assigneeId) {
+      this.notifyTaskAssigned(task.id, userId, projectId);
+    }
+
+    return task;
   }
 
   async findAllByProject(
@@ -83,7 +93,9 @@ export class TasksService {
     userRole: string,
   ) {
     const task = await this.findOne(id, userId, userRole);
-    return this.prisma.task.update({
+    const previousAssigneeId = task.assigneeId;
+
+    const updated = await this.prisma.task.update({
       where: { id: task.id },
       data: {
         title: dto.title,
@@ -97,6 +109,12 @@ export class TasksService {
       },
       include: this.includes(),
     });
+
+    if (dto.assigneeId && dto.assigneeId !== previousAssigneeId) {
+      this.notifyTaskAssigned(id, userId, task.projectId);
+    }
+
+    return updated;
   }
 
   async move(
@@ -145,6 +163,30 @@ export class TasksService {
         },
       },
     } as const;
+  }
+
+  private async notifyTaskAssigned(taskId: string, assignerId: string, projectId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        assignee: { include: { user: { select: { email: true } } } },
+        project: { select: { name: true } },
+      },
+    });
+    if (!task?.assignee) return;
+
+    const assigner = await this.prisma.user.findUnique({
+      where: { id: assignerId },
+      select: { firstName: true, lastName: true },
+    });
+    if (!assigner) return;
+
+    this.mailService.sendTaskAssigned(
+      task.assignee.user.email,
+      task.project.name,
+      task.title,
+      `${assigner.firstName} ${assigner.lastName}`,
+    );
   }
 
   private async checkProjectAccess(

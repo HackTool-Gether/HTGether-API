@@ -7,10 +7,14 @@ import {
 import { PlatformRole, InvitationStatus, ProjectRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class InvitationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async invite(
     projectId: string,
@@ -34,29 +38,42 @@ export class InvitationsService {
       throw new ConflictException('Une invitation est déjà en attente pour cet utilisateur');
     }
 
+    let invitation;
     if (existingInvite) {
-      return this.prisma.invitation.update({
+      invitation = await this.prisma.invitation.update({
         where: { id: existingInvite.id },
         data: { status: InvitationStatus.PENDING, role: dto.role, invitedById },
         include: {
           user: { select: { id: true, firstName: true, lastName: true, email: true } },
           project: { select: { id: true, name: true } },
+          invitedBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+    } else {
+      invitation = await this.prisma.invitation.create({
+        data: {
+          projectId,
+          userId: dto.userId,
+          role: dto.role,
+          invitedById,
+        },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          project: { select: { id: true, name: true } },
+          invitedBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
     }
 
-    return this.prisma.invitation.create({
-      data: {
-        projectId,
-        userId: dto.userId,
-        role: dto.role,
-        invitedById,
-      },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
-        project: { select: { id: true, name: true } },
-      },
-    });
+    const inviterName = `${invitation.invitedBy.firstName} ${invitation.invitedBy.lastName}`;
+    this.mailService.sendInvitation(
+      invitation.user.email,
+      inviterName,
+      invitation.project.name,
+      invitation.role,
+    );
+
+    return invitation;
   }
 
   async getProjectInvitations(projectId: string, userId: string, userRole: string) {
@@ -105,6 +122,14 @@ export class InvitationsService {
         },
       }),
     ]);
+
+    const [user, project] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      this.prisma.project.findUnique({ where: { id: invitation.projectId }, select: { name: true } }),
+    ]);
+    if (user && project) {
+      this.mailService.sendMemberAdded(user.email, project.name, invitation.role);
+    }
 
     return { message: 'Invitation acceptée' };
   }
