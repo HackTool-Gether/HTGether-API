@@ -732,6 +732,595 @@ const RECON_HTML = `<!DOCTYPE html>
 </html>`;
 
 // ---------------------------------------------------------------------------
+// 6. Hardware / IoT
+// ---------------------------------------------------------------------------
+const HARDWARE_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ project_name }}</title>
+</head>
+<body>
+  <div class="cover-page">
+    <h1>{{ project_name }}</h1>
+    <p class="subtitle">Audit Hardware / IoT</p>
+    <div class="cover-meta">
+      <p><strong>Client :</strong> {{ client_company }}</p>
+      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type :</strong> {{ audit_type }}</p>
+      <p><strong>Version firmware :</strong> {{ firmware_version }}</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Synthese</li>
+    <li>Perimetre</li>
+    <li>Methodologie</li>
+    <li>Analyse firmware</li>
+    <li>Interfaces physiques</li>
+    <li>Communications sans fil</li>
+    <li>Vulnerabilites</li>
+    <li>Statistiques</li>
+  </ol>
+
+  <div class="page-break"></div>
+  <h2>Methodologie</h2>
+  <p>L'audit du systeme embarque a suivi une approche en quatre phases :</p>
+  <h3>Reconnaissance hardware</h3>
+  <ul>
+    <li>Identification des composants electroniques (MCU, memoires, radios)</li>
+    <li>Recherche de ports de debug (JTAG, UART, SPI, I2C)</li>
+    <li>Dumping du firmware via interfaces physiques</li>
+  </ul>
+  <h3>Analyse firmware</h3>
+  <ul>
+    <li>Extraction et decompression du firmware (binwalk)</li>
+    <li>Analyse du systeme de fichiers</li>
+    <li>Recherche de secrets et backdoors codes en dur</li>
+    <li>Revue des mecanismes de mise a jour (signature, chiffrement)</li>
+  </ul>
+  <h3>Interfaces de communication</h3>
+  <ul>
+    <li>Analyse des protocoles radio (BLE, ZigBee, LoRa, Z-Wave)</li>
+    <li>Interception des communications serie</li>
+    <li>Tests des API cloud associees</li>
+  </ul>
+  <h3>Exploitation</h3>
+  <ul>
+    <li>Injection de firmware modifie</li>
+    <li>Attaques par canaux auxiliaires (glitching, SCA)</li>
+    <li>Contournement des protections de debug</li>
+  </ul>
+  <p><strong>Outils :</strong> {{ tools_used }}</p>
+
+  {{#each sections}}
+  <div class="page-break"></div>
+  <h2>{{ this.title }}</h2>
+  <div class="section-content">{{{ this.content_html }}}</div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Vulnerabilites</h2>
+  <table class="findings-table">
+    <thead>
+      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{#each findings}}
+      <tr>
+        <td class="mono">{{ this.slug }}</td>
+        <td>{{ this.title }}</td>
+        <td><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span></td>
+        <td class="mono">{{ this.cvss_score }}</td>
+        <td>{{ this.status }}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#each findings}}
+  <div class="page-break"></div>
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span>
+      <span class="finding-slug mono">{{ this.slug }}</span>
+    </div>
+    <h3>{{ this.title }}</h3>
+    {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
+    {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
+    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+  </div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Statistiques</h2>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-value">{{ findings_total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat stat-critical"><span class="stat-value">{{ findings_critical }}</span><span class="stat-label">Critiques</span></div>
+    <div class="stat stat-high"><span class="stat-value">{{ findings_high }}</span><span class="stat-label">Hautes</span></div>
+    <div class="stat stat-medium"><span class="stat-value">{{ findings_medium }}</span><span class="stat-label">Moyennes</span></div>
+    <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
+    <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
+  </div>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
+// 7. API REST / GraphQL
+// ---------------------------------------------------------------------------
+const API_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ project_name }}</title>
+</head>
+<body>
+  <div class="cover-page">
+    <h1>{{ project_name }}</h1>
+    <p class="subtitle">Audit API REST / GraphQL</p>
+    <div class="cover-meta">
+      <p><strong>Client :</strong> {{ client_company }}</p>
+      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type :</strong> {{ audit_type }}</p>
+      <p><strong>URL de base :</strong> {{ api_base_url }}</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Synthese</li>
+    <li>Perimetre</li>
+    <li>Methodologie</li>
+    <li>Authentification & Autorisation</li>
+    <li>Injection & Validation</li>
+    <li>Logique metier</li>
+    <li>Vulnerabilites</li>
+    <li>Statistiques</li>
+  </ol>
+
+  <div class="page-break"></div>
+  <h2>Methodologie</h2>
+  <p>L'audit de l'API a ete conduit selon les recommandations de l'<strong>OWASP API Security Top 10</strong>.</p>
+  <h3>Cartographie de l'API</h3>
+  <ul>
+    <li>Decouverte des endpoints (Swagger/OpenAPI, introspection GraphQL)</li>
+    <li>Analyse des schemas et modeles de donnees</li>
+    <li>Identification des mecanismes d'authentification (OAuth2, JWT, API keys)</li>
+  </ul>
+  <h3>Tests d'authentification</h3>
+  <ul>
+    <li>Brute force et credential stuffing</li>
+    <li>Manipulation de tokens JWT (algorithme none, cle faible)</li>
+    <li>Bypass des controles OAuth2 (redirect_uri, state)</li>
+  </ul>
+  <h3>Tests d'autorisation</h3>
+  <ul>
+    <li>BOLA / IDOR sur les ressources</li>
+    <li>BFLA — acces aux fonctions non autorisees</li>
+    <li>Mass assignment et champs caches</li>
+  </ul>
+  <h3>Injection et validation</h3>
+  <ul>
+    <li>Injection SQL/NoSQL via parametres API</li>
+    <li>Injection dans les requetes GraphQL</li>
+    <li>SSRF via parametres URL</li>
+    <li>Abus de rate limiting et pagination</li>
+  </ul>
+  <p><strong>Outils :</strong> {{ tools_used }}</p>
+
+  {{#each sections}}
+  <div class="page-break"></div>
+  <h2>{{ this.title }}</h2>
+  <div class="section-content">{{{ this.content_html }}}</div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Vulnerabilites</h2>
+  <table class="findings-table">
+    <thead>
+      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{#each findings}}
+      <tr>
+        <td class="mono">{{ this.slug }}</td>
+        <td>{{ this.title }}</td>
+        <td><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span></td>
+        <td class="mono">{{ this.cvss_score }}</td>
+        <td>{{ this.status }}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#each findings}}
+  <div class="page-break"></div>
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span>
+      <span class="finding-slug mono">{{ this.slug }}</span>
+    </div>
+    <h3>{{ this.title }}</h3>
+    {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
+    {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
+    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+  </div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Statistiques</h2>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-value">{{ findings_total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat stat-critical"><span class="stat-value">{{ findings_critical }}</span><span class="stat-label">Critiques</span></div>
+    <div class="stat stat-high"><span class="stat-value">{{ findings_high }}</span><span class="stat-label">Hautes</span></div>
+    <div class="stat stat-medium"><span class="stat-value">{{ findings_medium }}</span><span class="stat-label">Moyennes</span></div>
+    <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
+    <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
+  </div>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
+// 8. Cloud Security
+// ---------------------------------------------------------------------------
+const CLOUD_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ project_name }}</title>
+</head>
+<body>
+  <div class="cover-page">
+    <h1>{{ project_name }}</h1>
+    <p class="subtitle">Audit Securite Cloud</p>
+    <div class="cover-meta">
+      <p><strong>Client :</strong> {{ client_company }}</p>
+      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type :</strong> {{ audit_type }}</p>
+      <p><strong>Fournisseur cloud :</strong> {{ cloud_provider }}</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Synthese</li>
+    <li>Perimetre</li>
+    <li>Methodologie</li>
+    <li>IAM & Identites</li>
+    <li>Stockage & Donnees</li>
+    <li>Reseau & Exposition</li>
+    <li>Vulnerabilites</li>
+    <li>Statistiques</li>
+  </ol>
+
+  <div class="page-break"></div>
+  <h2>Methodologie</h2>
+  <p>L'audit de l'infrastructure <strong>{{ cloud_provider }}</strong> a suivi les bonnes pratiques CIS Benchmarks et les recommandations du fournisseur.</p>
+  <h3>Revue IAM</h3>
+  <ul>
+    <li>Audit des politiques IAM et des roles</li>
+    <li>Recherche de permissions excessives (privilege escalation)</li>
+    <li>Analyse des cles d'acces et politique de rotation</li>
+    <li>Verification du MFA sur les comptes privilegies</li>
+  </ul>
+  <h3>Stockage et donnees</h3>
+  <ul>
+    <li>Buckets/Blobs publics ou mal configures</li>
+    <li>Chiffrement des donnees au repos et en transit</li>
+    <li>Logs et tracabilite (CloudTrail, Activity Log)</li>
+  </ul>
+  <h3>Reseau et exposition</h3>
+  <ul>
+    <li>Security Groups et Network ACLs</li>
+    <li>Services exposes publiquement</li>
+    <li>VPC peering et interconnexions</li>
+  </ul>
+  <h3>Services manages</h3>
+  <ul>
+    <li>Configurations des bases de donnees (RDS, CosmosDB)</li>
+    <li>Fonctions serverless (Lambda, Functions)</li>
+    <li>Conteneurs et orchestrateurs (EKS, AKS, GKE)</li>
+  </ul>
+  <p><strong>Outils :</strong> {{ tools_used }}</p>
+
+  {{#each sections}}
+  <div class="page-break"></div>
+  <h2>{{ this.title }}</h2>
+  <div class="section-content">{{{ this.content_html }}}</div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Vulnerabilites</h2>
+  <table class="findings-table">
+    <thead>
+      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{#each findings}}
+      <tr>
+        <td class="mono">{{ this.slug }}</td>
+        <td>{{ this.title }}</td>
+        <td><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span></td>
+        <td class="mono">{{ this.cvss_score }}</td>
+        <td>{{ this.status }}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#each findings}}
+  <div class="page-break"></div>
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span>
+      <span class="finding-slug mono">{{ this.slug }}</span>
+    </div>
+    <h3>{{ this.title }}</h3>
+    {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
+    {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
+    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+  </div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Statistiques</h2>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-value">{{ findings_total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat stat-critical"><span class="stat-value">{{ findings_critical }}</span><span class="stat-label">Critiques</span></div>
+    <div class="stat stat-high"><span class="stat-value">{{ findings_high }}</span><span class="stat-label">Hautes</span></div>
+    <div class="stat stat-medium"><span class="stat-value">{{ findings_medium }}</span><span class="stat-label">Moyennes</span></div>
+    <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
+    <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
+  </div>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
+// 9. Wi-Fi / Wireless
+// ---------------------------------------------------------------------------
+const WIFI_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ project_name }}</title>
+</head>
+<body>
+  <div class="cover-page">
+    <h1>{{ project_name }}</h1>
+    <p class="subtitle">Audit Wi-Fi / Sans-fil</p>
+    <div class="cover-meta">
+      <p><strong>Client :</strong> {{ client_company }}</p>
+      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type :</strong> {{ audit_type }}</p>
+      <p><strong>Nombre de SSID :</strong> {{ ssid_count }}</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Synthese</li>
+    <li>Perimetre</li>
+    <li>Methodologie</li>
+    <li>Reconnaissance radio</li>
+    <li>Attaques d'authentification</li>
+    <li>Post-connexion</li>
+    <li>Vulnerabilites</li>
+    <li>Statistiques</li>
+  </ol>
+
+  <div class="page-break"></div>
+  <h2>Methodologie</h2>
+  <p>L'audit des reseaux sans fil a couvert {{ ssid_count }} SSID identifies sur le perimetre.</p>
+  <h3>Reconnaissance radio</h3>
+  <ul>
+    <li>Cartographie des reseaux (airodump-ng, Kismet)</li>
+    <li>Identification des points d'acces et clients associes</li>
+    <li>Analyse des protocoles de securite (WPA2/WPA3/WEP/Open)</li>
+    <li>Detection de reseaux caches et points d'acces pirates</li>
+  </ul>
+  <h3>Attaques d'authentification</h3>
+  <ul>
+    <li>Capture de handshakes WPA2 (4-way handshake)</li>
+    <li>Attaques par dictionnaire et brute force (hashcat)</li>
+    <li>Evil Twin et portails captifs malveillants</li>
+    <li>Attaques PMKID (sans client connecte)</li>
+    <li>Downgrade WPA3 vers WPA2 (Dragonblood)</li>
+  </ul>
+  <h3>Post-connexion</h3>
+  <ul>
+    <li>ARP spoofing et attaques MITM</li>
+    <li>Analyse du trafic reseau</li>
+    <li>Pivoting vers le reseau interne</li>
+    <li>Tests de segmentation VLAN</li>
+  </ul>
+  <p><strong>Outils :</strong> {{ tools_used }}</p>
+
+  {{#each sections}}
+  <div class="page-break"></div>
+  <h2>{{ this.title }}</h2>
+  <div class="section-content">{{{ this.content_html }}}</div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Vulnerabilites</h2>
+  <table class="findings-table">
+    <thead>
+      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{#each findings}}
+      <tr>
+        <td class="mono">{{ this.slug }}</td>
+        <td>{{ this.title }}</td>
+        <td><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span></td>
+        <td class="mono">{{ this.cvss_score }}</td>
+        <td>{{ this.status }}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#each findings}}
+  <div class="page-break"></div>
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span>
+      <span class="finding-slug mono">{{ this.slug }}</span>
+    </div>
+    <h3>{{ this.title }}</h3>
+    {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
+    {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
+    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+  </div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Statistiques</h2>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-value">{{ findings_total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat stat-critical"><span class="stat-value">{{ findings_critical }}</span><span class="stat-label">Critiques</span></div>
+    <div class="stat stat-high"><span class="stat-value">{{ findings_high }}</span><span class="stat-label">Hautes</span></div>
+    <div class="stat stat-medium"><span class="stat-value">{{ findings_medium }}</span><span class="stat-label">Moyennes</span></div>
+    <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
+    <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
+  </div>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
+// 10. Social Engineering / Phishing
+// ---------------------------------------------------------------------------
+const SOCIAL_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ project_name }}</title>
+</head>
+<body>
+  <div class="cover-page">
+    <h1>{{ project_name }}</h1>
+    <p class="subtitle">Social Engineering / Phishing</p>
+    <div class="cover-meta">
+      <p><strong>Client :</strong> {{ client_company }}</p>
+      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type :</strong> {{ audit_type }}</p>
+      <p><strong>Nombre de cibles :</strong> {{ target_count }}</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Synthese</li>
+    <li>Perimetre</li>
+    <li>Methodologie</li>
+    <li>Reconnaissance OSINT</li>
+    <li>Campagne de phishing</li>
+    <li>Ingenierie sociale physique</li>
+    <li>Resultats</li>
+    <li>Statistiques</li>
+  </ol>
+
+  <div class="page-break"></div>
+  <h2>Methodologie</h2>
+  <p>La campagne de social engineering a cible {{ target_count }} collaborateurs identifies lors de la phase de reconnaissance.</p>
+  <h3>Reconnaissance OSINT</h3>
+  <ul>
+    <li>Collecte d'adresses email (theHarvester, Hunter.io)</li>
+    <li>Analyse des reseaux sociaux des employes</li>
+    <li>Identification de l'organigramme et des cibles prioritaires</li>
+    <li>Recherche de fuites de donnees existantes</li>
+  </ul>
+  <h3>Campagne de phishing</h3>
+  <ul>
+    <li>Creation des pretextes et scenarios</li>
+    <li>Mise en place de l'infrastructure (GoPhish)</li>
+    <li>Envoi des emails et suivi des interactions</li>
+    <li>Analyse des taux de clic et soumission de credentials</li>
+    <li>Deploiement de pages de phishing (Evilginx)</li>
+  </ul>
+  <h3>Tests physiques</h3>
+  <ul>
+    <li>Tentatives de tailgating (acces aux locaux)</li>
+    <li>Tests de cles USB (rubber ducky, drops)</li>
+    <li>Appels de vishing (pretexte telephonique)</li>
+    <li>Tests de badges et controles d'acces</li>
+  </ul>
+  <p><strong>Outils :</strong> {{ tools_used }}</p>
+
+  {{#each sections}}
+  <div class="page-break"></div>
+  <h2>{{ this.title }}</h2>
+  <div class="section-content">{{{ this.content_html }}}</div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Resultats</h2>
+  <table class="findings-table">
+    <thead>
+      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {{#each findings}}
+      <tr>
+        <td class="mono">{{ this.slug }}</td>
+        <td>{{ this.title }}</td>
+        <td><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span></td>
+        <td class="mono">{{ this.cvss_score }}</td>
+        <td>{{ this.status }}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#each findings}}
+  <div class="page-break"></div>
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span>
+      <span class="finding-slug mono">{{ this.slug }}</span>
+    </div>
+    <h3>{{ this.title }}</h3>
+    {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
+    {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
+    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+  </div>
+  {{/each}}
+
+  <div class="page-break"></div>
+  <h2>Statistiques</h2>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-value">{{ findings_total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat stat-critical"><span class="stat-value">{{ findings_critical }}</span><span class="stat-label">Critiques</span></div>
+    <div class="stat stat-high"><span class="stat-value">{{ findings_high }}</span><span class="stat-label">Hautes</span></div>
+    <div class="stat stat-medium"><span class="stat-value">{{ findings_medium }}</span><span class="stat-label">Moyennes</span></div>
+    <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
+    <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
+  </div>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
 // Library entries
 // ---------------------------------------------------------------------------
 export const TEMPLATE_LIBRARY: LibraryEntry[] = [
@@ -881,6 +1470,143 @@ export const TEMPLATE_LIBRARY: LibraryEntry[] = [
         type: 'string',
         category: 'Methodologie',
         defaultValue: 'Amass, theHarvester, Shodan, Maltego',
+        required: false,
+      },
+    ],
+  },
+  {
+    slug: 'hardware',
+    name: 'Pentest Hardware / IoT',
+    description:
+      "Template pour audits de systemes embarques, IoT et hardware",
+    category: 'hardware',
+    htmlContent: HARDWARE_HTML,
+    cssContent: LIBRARY_CSS,
+    variables: [
+      {
+        id: 'firmware_version',
+        label: 'Version firmware',
+        type: 'string',
+        category: 'Perimetre',
+        required: false,
+      },
+      {
+        id: 'tools_used',
+        label: 'Outils utilises',
+        type: 'string',
+        category: 'Methodologie',
+        defaultValue: 'binwalk, Ghidra, Logic Analyzer, Bus Pirate, nRF Connect',
+        required: false,
+      },
+    ],
+  },
+  {
+    slug: 'api',
+    name: 'Pentest API REST / GraphQL',
+    description:
+      "Template pour audits de securite d'APIs REST et GraphQL",
+    category: 'api',
+    htmlContent: API_HTML,
+    cssContent: LIBRARY_CSS,
+    variables: [
+      {
+        id: 'api_base_url',
+        label: 'URL de base de l\'API',
+        type: 'string',
+        category: 'Perimetre',
+        required: true,
+      },
+      {
+        id: 'tools_used',
+        label: 'Outils utilises',
+        type: 'string',
+        category: 'Methodologie',
+        defaultValue: 'Burp Suite, Postman, GraphQL Voyager, jwt_tool',
+        required: false,
+      },
+    ],
+  },
+  {
+    slug: 'cloud',
+    name: 'Audit Securite Cloud',
+    description:
+      "Template pour audits d'infrastructures cloud (AWS, Azure, GCP)",
+    category: 'cloud',
+    htmlContent: CLOUD_HTML,
+    cssContent: LIBRARY_CSS,
+    variables: [
+      {
+        id: 'cloud_provider',
+        label: 'Fournisseur cloud',
+        type: 'enum',
+        category: 'Perimetre',
+        defaultValue: 'AWS',
+        required: true,
+        options: [
+          { value: 'AWS', label: 'AWS' },
+          { value: 'Azure', label: 'Azure' },
+          { value: 'GCP', label: 'GCP' },
+          { value: 'Multi-cloud', label: 'Multi-cloud' },
+        ],
+      },
+      {
+        id: 'tools_used',
+        label: 'Outils utilises',
+        type: 'string',
+        category: 'Methodologie',
+        defaultValue: 'ScoutSuite, Prowler, CloudSploit, Pacu',
+        required: false,
+      },
+    ],
+  },
+  {
+    slug: 'wifi',
+    name: 'Pentest Wi-Fi / Sans-fil',
+    description:
+      'Template pour audits de securite des reseaux sans fil',
+    category: 'wifi',
+    htmlContent: WIFI_HTML,
+    cssContent: LIBRARY_CSS,
+    variables: [
+      {
+        id: 'ssid_count',
+        label: 'Nombre de SSID',
+        type: 'number',
+        category: 'Perimetre',
+        required: false,
+      },
+      {
+        id: 'tools_used',
+        label: 'Outils utilises',
+        type: 'string',
+        category: 'Methodologie',
+        defaultValue: 'Aircrack-ng, Wireshark, hostapd, bettercap',
+        required: false,
+      },
+    ],
+  },
+  {
+    slug: 'social',
+    name: 'Social Engineering / Phishing',
+    description:
+      'Template pour campagnes de sensibilisation et tests de phishing',
+    category: 'social',
+    htmlContent: SOCIAL_HTML,
+    cssContent: LIBRARY_CSS,
+    variables: [
+      {
+        id: 'target_count',
+        label: 'Nombre de cibles',
+        type: 'number',
+        category: 'Perimetre',
+        required: false,
+      },
+      {
+        id: 'tools_used',
+        label: 'Outils utilises',
+        type: 'string',
+        category: 'Methodologie',
+        defaultValue: 'GoPhish, SET, theHarvester, Evilginx',
         required: false,
       },
     ],

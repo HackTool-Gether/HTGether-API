@@ -473,6 +473,39 @@ export class ProjectsService {
     };
   }
 
+  async getAvailableUsers(projectId: string, userId: string, userRole: string) {
+    await this.checkManagerAccess(projectId, userId, userRole);
+
+    const [memberUserIds, pendingInviteUserIds] = await Promise.all([
+      this.prisma.projectMember.findMany({
+        where: { projectId },
+        select: { userId: true },
+      }),
+      this.prisma.invitation.findMany({
+        where: { projectId, status: 'PENDING' },
+        select: { userId: true },
+      }),
+    ]);
+
+    const excludeIds = new Set([
+      ...memberUserIds.map((m) => m.userId),
+      ...pendingInviteUserIds.map((i) => i.userId),
+    ]);
+
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: { firstName: 'asc' },
+    });
+
+    return users.filter((u) => !excludeIds.has(u.id));
+  }
+
   private async checkProjectAccess(projectId: string, userId: string, userRole: string) {
     if (userRole === PlatformRole.SUPER_ADMIN) return;
     const member = await this.prisma.projectMember.findFirst({

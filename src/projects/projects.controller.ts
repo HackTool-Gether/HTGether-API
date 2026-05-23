@@ -113,6 +113,11 @@ export class ProjectsController {
     return this.projectsService.unassignScope(id, scopeId, memberId, user.id, user.role);
   }
 
+  @Get(':id/available-users')
+  getAvailableUsers(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.getAvailableUsers(id, user.id, user.role);
+  }
+
   @Get(':id/stats')
   getStats(@Param('id') id: string, @CurrentUser() user: any) {
     return this.projectsService.getStats(id, user.id, user.role);
