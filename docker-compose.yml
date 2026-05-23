@@ -1,51 +1,40 @@
 services:
   db:
     image: postgres:16-alpine
+    network_mode: host
     environment:
       POSTGRES_USER: htgether
       POSTGRES_PASSWORD: htgether
       POSTGRES_DB: htgether
+      PGPORT: "5436"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U htgether"]
+      test: ["CMD-SHELL", "pg_isready -U htgether -p 5436"]
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - htgether
 
   api:
     build: .
-    ports:
-      - "4000:4000"
+    network_mode: host
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://htgether:htgether@db:5432/htgether?schema=public
+      DATABASE_URL: postgresql://htgether:htgether@localhost:5436/htgether?schema=public
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - htgether
 
   studio:
     build: .
     command: npx prisma studio
-    ports:
-      - "5555:5555"
+    network_mode: host
     environment:
-      DATABASE_URL: postgresql://htgether:htgether@db:5432/htgether?schema=public
+      DATABASE_URL: postgresql://htgether:htgether@localhost:5436/htgether?schema=public
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - htgether
 
 volumes:
   pgdata:
-
-networks:
-  htgether:
-    name: htgether
-    driver: bridge
