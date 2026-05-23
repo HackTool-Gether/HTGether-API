@@ -326,16 +326,30 @@ export class AuthService {
   ) {
     let user = await this.prisma.user.findUnique({ where: { email } });
 
+    if (user && !user.isActive) {
+      throw new ForbiddenException('Ce compte a été désactivé');
+    }
+
     if (!user) {
-      throw new ForbiddenException('Aucun compte associé à cet email. Contactez votre administrateur.');
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          authProvider,
+          externalId,
+          role: PlatformRole.USER,
+          isActive: true,
+          mustChangePassword: false,
+          onboardingCompleted: true,
+          onboardingStep: 3,
+        },
+      });
+      this.logger.log(`Auto-created user ${email} via ${authProvider}`);
+      return user;
     }
 
-    if (!user.isActive) {
-      throw new ForbiddenException('Account is deactivated');
-    }
-
-    // SSO login: update external ID + clear mustChangePassword
-    const needsUpdate = !user.externalId || user.mustChangePassword;
+    const needsUpdate = !user.externalId || user.mustChangePassword || user.authProvider !== authProvider;
     if (needsUpdate) {
       user = await this.prisma.user.update({
         where: { id: user.id },
