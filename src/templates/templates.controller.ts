@@ -39,6 +39,16 @@ export class TemplatesController {
     return this.templatesService.findAll();
   }
 
+  @Get('library')
+  getLibrary() {
+    return this.templatesService.getLibrary();
+  }
+
+  @Post('library/:slug/import')
+  importFromLibrary(@Param('slug') slug: string) {
+    return this.templatesService.importFromLibrary(slug);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.templatesService.findOne(id);

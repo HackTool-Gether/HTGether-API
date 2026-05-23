@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
+import { TEMPLATE_LIBRARY } from './library/template-library';
 
 @Injectable()
 export class TemplatesService {
@@ -131,6 +132,38 @@ export class TemplatesService {
     if (!asset) throw new NotFoundException('Asset introuvable');
     await this.prisma.templateAsset.delete({ where: { id: assetId } });
     return { message: 'Asset supprimé' };
+  }
+
+  getLibrary() {
+    return TEMPLATE_LIBRARY.map(({ slug, name, description, category }) => ({
+      slug,
+      name,
+      description,
+      category,
+    }));
+  }
+
+  async importFromLibrary(slug: string) {
+    const entry = TEMPLATE_LIBRARY.find((t) => t.slug === slug);
+    if (!entry) {
+      throw new NotFoundException(
+        `Template "${slug}" introuvable dans la bibliothèque`,
+      );
+    }
+
+    return this.prisma.reportTemplate.create({
+      data: {
+        name: entry.name,
+        description: entry.description,
+        htmlContent: entry.htmlContent,
+        cssContent: entry.cssContent,
+        variables: entry.variables as any,
+        isDefault: false,
+      },
+      include: {
+        _count: { select: { projects: true, assets: true } },
+      },
+    });
   }
 }
 
