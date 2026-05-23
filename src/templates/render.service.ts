@@ -4,8 +4,26 @@ import * as Handlebars from 'handlebars';
 import { marked } from 'marked';
 
 interface ReportData {
-  sections?: { id: string; title: string; content: string }[];
+  sections?: { id: string; title: string; content: any }[];
   variables?: Record<string, any>;
+}
+
+function tiptapToText(node: any): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (node.type === 'text') return node.text || '';
+  if (!node.content || !Array.isArray(node.content)) return '';
+  return node.content.map((child: any) => {
+    const text = tiptapToText(child);
+    if (child.type === 'paragraph') return text + '\n\n';
+    if (child.type === 'heading') return '#'.repeat(child.attrs?.level || 1) + ' ' + text + '\n\n';
+    if (child.type === 'bulletList') return text;
+    if (child.type === 'orderedList') return text;
+    if (child.type === 'listItem') return '- ' + text + '\n';
+    if (child.type === 'codeBlock') return '```\n' + text + '\n```\n\n';
+    if (child.type === 'blockquote') return '> ' + text + '\n\n';
+    return text;
+  }).join('');
 }
 
 @Injectable()
@@ -91,18 +109,21 @@ export class RenderService {
       severity_lower: f.severity.toLowerCase(),
       cvss_score: f.cvssScore != null ? f.cvssScore.toFixed(1) : '—',
       cvss_vector: f.cvssVector || '',
-      description_html: f.description ? marked.parse(f.description, { async: false }) : '',
-      proof_html: f.proof ? marked.parse(f.proof, { async: false }) : '',
-      impact_html: f.impact ? marked.parse(f.impact, { async: false }) : '',
-      remediation_html: f.remediation ? marked.parse(f.remediation, { async: false }) : '',
+      description_html: f.description ? marked.parse(typeof f.description === 'string' ? f.description : tiptapToText(f.description), { async: false }) : '',
+      proof_html: f.proof ? marked.parse(typeof f.proof === 'string' ? f.proof : tiptapToText(f.proof), { async: false }) : '',
+      impact_html: f.impact ? marked.parse(typeof f.impact === 'string' ? f.impact : tiptapToText(f.impact), { async: false }) : '',
+      remediation_html: f.remediation ? marked.parse(typeof f.remediation === 'string' ? f.remediation : tiptapToText(f.remediation), { async: false }) : '',
       author_name: f.author ? `${f.author.firstName} ${f.author.lastName}` : '',
       component_name: f.component?.name || '',
     }));
 
-    const sectionsData = sections.map((s) => ({
-      ...s,
-      content_html: s.content ? marked.parse(s.content, { async: false }) : '',
-    }));
+    const sectionsData = sections.map((s) => {
+      const text = typeof s.content === 'string' ? s.content : tiptapToText(s.content);
+      return {
+        ...s,
+        content_html: text ? marked.parse(text, { async: false }) : '',
+      };
+    });
 
     const auditTypeLabels: Record<string, string> = {
       WEB: 'Web', INTERNAL_AD: 'Active Directory interne', LINUX: 'Linux', MOBILE: 'Mobile', OTHER: 'Autre',
