@@ -17,6 +17,7 @@ import { InvitationsModule } from './invitations/invitations.module';
 import { TemplatesModule } from './templates/templates.module';
 import { MailModule } from './mail/mail.module';
 import { ComponentsModule } from './components/components.module';
+import { AttackChainsModule } from './attack-chains/attack-chains.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ComponentsModule } from './components/components.module';
     InvitationsModule,
     TemplatesModule,
     ComponentsModule,
+    AttackChainsModule,
   ],
 })
 export class AppModule {}
