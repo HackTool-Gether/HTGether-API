@@ -1,5 +1,5 @@
 -- AlterTable: remove unique constraint on projectId to allow multiple reports per project
-ALTER TABLE "reports" DROP CONSTRAINT "reports_projectId_key";
+DROP INDEX IF EXISTS "reports_projectId_key";
 
 -- AlterTable: add name column with default value
 ALTER TABLE "reports" ADD COLUMN "name" TEXT NOT NULL DEFAULT 'Rapport principal';
