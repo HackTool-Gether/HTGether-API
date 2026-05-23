@@ -122,37 +122,40 @@ export class SetupService {
       throw new ForbiddenException('Onboarding has already been completed');
     }
 
-    // 1. Create super admin
+    // 1. Create or update super admin (skip if admin data not provided and one already exists)
     let superAdmin = await this.prisma.user.findFirst({
       where: { role: PlatformRole.SUPER_ADMIN },
     });
 
-    if (!superAdmin) {
+    if (dto.admin) {
       const hashedPassword = await bcrypt.hash(dto.admin.password, SALT_ROUNDS);
-      superAdmin = await this.prisma.user.create({
-        data: {
-          email: dto.admin.email,
-          password: hashedPassword,
-          firstName: dto.admin.firstName,
-          lastName: dto.admin.lastName,
-          role: PlatformRole.SUPER_ADMIN,
-          onboardingCompleted: true,
-        },
-      });
-      this.logger.log(`Super Admin created via onboarding: ${dto.admin.email}`);
-    } else {
-      const hashedPassword = await bcrypt.hash(dto.admin.password, SALT_ROUNDS);
-      superAdmin = await this.prisma.user.update({
-        where: { id: superAdmin.id },
-        data: {
-          email: dto.admin.email,
-          password: hashedPassword,
-          firstName: dto.admin.firstName,
-          lastName: dto.admin.lastName,
-          onboardingCompleted: true,
-        },
-      });
-      this.logger.log(`Super Admin updated via onboarding: ${dto.admin.email}`);
+      if (!superAdmin) {
+        superAdmin = await this.prisma.user.create({
+          data: {
+            email: dto.admin.email,
+            password: hashedPassword,
+            firstName: dto.admin.firstName,
+            lastName: dto.admin.lastName,
+            role: PlatformRole.SUPER_ADMIN,
+            onboardingCompleted: true,
+          },
+        });
+        this.logger.log(`Super Admin created via onboarding: ${dto.admin.email}`);
+      } else {
+        superAdmin = await this.prisma.user.update({
+          where: { id: superAdmin.id },
+          data: {
+            email: dto.admin.email,
+            password: hashedPassword,
+            firstName: dto.admin.firstName,
+            lastName: dto.admin.lastName,
+            onboardingCompleted: true,
+          },
+        });
+        this.logger.log(`Super Admin updated via onboarding: ${dto.admin.email}`);
+      }
+    } else if (!superAdmin) {
+      throw new ForbiddenException('Aucun administrateur trouvé et aucune donnée admin fournie');
     }
 
     // 2. Save company settings
