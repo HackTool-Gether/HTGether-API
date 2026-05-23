@@ -83,6 +83,31 @@ export class ProjectsController {
     return this.projectsService.updateKanbanConfig(id, dto, user.id, user.role);
   }
 
+  @Get(':id/workload')
+  getWorkload(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.getWorkload(id, user.id, user.role);
+  }
+
+  @Post(':id/scopes/:scopeId/assign/:memberId')
+  assignScope(
+    @Param('id') id: string,
+    @Param('scopeId') scopeId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.projectsService.assignScope(id, scopeId, memberId, user.id, user.role);
+  }
+
+  @Delete(':id/scopes/:scopeId/assign/:memberId')
+  unassignScope(
+    @Param('id') id: string,
+    @Param('scopeId') scopeId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.projectsService.unassignScope(id, scopeId, memberId, user.id, user.role);
+  }
+
   @Get(':id/stats')
   getStats(@Param('id') id: string, @CurrentUser() user: any) {
     return this.projectsService.getStats(id, user.id, user.role);

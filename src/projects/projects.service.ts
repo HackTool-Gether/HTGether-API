@@ -141,6 +141,80 @@ export class ProjectsService {
     });
   }
 
+  // ── Workload matrix ──
+
+  async getWorkload(projectId: string, userId: string, userRole: string) {
+    await this.checkProjectAccess(projectId, userId, userRole);
+
+    const [members, scopes, tasks, assignments] = await Promise.all([
+      this.prisma.projectMember.findMany({
+        where: { projectId },
+        include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      }),
+      this.prisma.scope.findMany({
+        where: { projectId },
+        select: { id: true, name: true, status: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.task.findMany({
+        where: { projectId },
+        select: { id: true, status: true, assigneeId: true },
+      }),
+      this.prisma.scopeAssignment.findMany({
+        where: { scope: { projectId } },
+        select: { scopeId: true, memberId: true },
+      }),
+    ]);
+
+    const assignmentSet = new Set(assignments.map((a) => `${a.scopeId}:${a.memberId}`));
+
+    const memberStats = members.map((m) => {
+      const memberTasks = tasks.filter((t) => t.assigneeId === m.id);
+      return {
+        memberId: m.id,
+        userId: m.user.id,
+        name: `${m.user.firstName} ${m.user.lastName}`,
+        role: m.role,
+        tasks: {
+          total: memberTasks.length,
+          done: memberTasks.filter((t) => t.status === 'DONE').length,
+          inProgress: memberTasks.filter((t) => t.status === 'IN_PROGRESS').length,
+          todo: memberTasks.filter((t) => t.status === 'TODO').length,
+          backlog: memberTasks.filter((t) => t.status === 'BACKLOG').length,
+        },
+      };
+    });
+
+    const scopeRows = scopes.map((s) => {
+      const assignedMembers = members
+        .filter((m) => assignmentSet.has(`${s.id}:${m.id}`))
+        .map((m) => m.id);
+      return {
+        scopeId: s.id,
+        name: s.name,
+        status: s.status,
+        assignedMembers,
+        unassigned: assignedMembers.length === 0,
+      };
+    });
+
+    return { members: memberStats, scopes: scopeRows };
+  }
+
+  async assignScope(projectId: string, scopeId: string, memberId: string, userId: string, userRole: string) {
+    await this.checkManagerAccess(projectId, userId, userRole);
+    return this.prisma.scopeAssignment.create({
+      data: { scopeId, memberId },
+    });
+  }
+
+  async unassignScope(projectId: string, scopeId: string, memberId: string, userId: string, userRole: string) {
+    await this.checkManagerAccess(projectId, userId, userRole);
+    return this.prisma.scopeAssignment.delete({
+      where: { scopeId_memberId: { scopeId, memberId } },
+    });
+  }
+
   // ── Remarks (manager-only) ──
 
   async getRemarks(projectId: string, userId: string, userRole: string) {
