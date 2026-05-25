@@ -125,6 +125,7 @@ model User {
   avatarStyle  String           @default("adventurer")
   avatarSeed   String           @default("")
   avatarOptions Json            @default("{}")
+  lastLoginAt  DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -511,4 +512,13 @@ model PlatformSettings {
   updatedAt DateTime @updatedAt
 
   @@map("platform_settings")
+}
+
+model AllowedDomain {
+  id          String   @id @default(uuid())
+  pattern     String   @unique
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  @@map("allowed_domains")
 }

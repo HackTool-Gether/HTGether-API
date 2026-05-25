@@ -62,6 +62,7 @@ export class UsersService {
         avatarStyle: true,
         avatarSeed: true,
         avatarOptions: true,
+        lastLoginAt: true,
         createdAt: true,
       },
     });
@@ -83,6 +84,7 @@ export class UsersService {
         avatarStyle: true,
         avatarSeed: true,
         avatarOptions: true,
+        lastLoginAt: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -103,6 +105,7 @@ export class UsersService {
         avatarStyle: true,
         avatarSeed: true,
         avatarOptions: true,
+        lastLoginAt: true,
         createdAt: true,
         projectMembers: {
           select: {

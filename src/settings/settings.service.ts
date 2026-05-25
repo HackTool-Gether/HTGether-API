@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type SettingsKey = 'company' | 'ai' | 'smtp' | 'onboarding';
+export type SettingsKey = 'company' | 'ai' | 'smtp' | 'onboarding' | 'auth';
 
 @Injectable()
 export class SettingsService {

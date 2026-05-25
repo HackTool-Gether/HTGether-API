@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -473,7 +474,65 @@ export class AuthService {
     return this.buildAuthResponse(updated);
   }
 
+  async selfRegister(dto: { email: string; firstName: string; lastName: string; password: string; avatarStyle?: string; avatarSeed?: string; avatarOptions?: any }) {
+    // 1. Check if self-registration is enabled (check if any AllowedDomain exists)
+    const domains = await this.prisma.allowedDomain.findMany();
+    if (domains.length === 0) {
+      throw new BadRequestException('L\'auto-inscription n\'est pas activée');
+    }
+
+    // 2. Validate email domain against whitelist
+    const emailDomain = dto.email.split('@')[1]?.toLowerCase();
+    if (!emailDomain) {
+      throw new BadRequestException('Email invalide');
+    }
+
+    const isAllowed = domains.some(d => {
+      const pattern = d.pattern.toLowerCase();
+      if (pattern.startsWith('*.')) {
+        const suffix = pattern.slice(2);
+        return emailDomain === suffix || emailDomain.endsWith('.' + suffix);
+      }
+      return emailDomain === pattern;
+    });
+
+    if (!isAllowed) {
+      throw new ForbiddenException('Le domaine de cet email n\'est pas autorisé');
+    }
+
+    // 3. Check if user already exists
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) {
+      throw new ConflictException('Un compte existe déjà avec cet email');
+    }
+
+    // 4. Create user
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        password: hashedPassword,
+        role: PlatformRole.USER,
+        onboardingCompleted: true,
+        onboardingStep: 3,
+        avatarStyle: dto.avatarStyle || 'adventurer',
+        avatarSeed: dto.avatarSeed || dto.firstName,
+        avatarOptions: dto.avatarOptions || {},
+      },
+    });
+
+    return { message: 'Compte créé avec succès', userId: user.id };
+  }
+
   private async buildAuthResponse(user: any) {
+    // Update last login timestamp
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
     const tokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
@@ -493,6 +552,7 @@ export class AuthService {
         avatarStyle: user.avatarStyle ?? 'adventurer',
         avatarSeed: user.avatarSeed ?? '',
         avatarOptions: user.avatarOptions ?? {},
+        lastLoginAt: user.lastLoginAt ?? null,
       },
       ...tokens,
     };

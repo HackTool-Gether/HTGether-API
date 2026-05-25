@@ -7,6 +7,7 @@ import { LdapLoginDto } from './dto/ldap-login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { SelfRegisterDto } from './dto/self-register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -17,6 +18,11 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('register')
+  async register(@Body() dto: SelfRegisterDto) {
+    return this.authService.selfRegister(dto);
   }
 
   // OIDC: get redirect URL for SSO provider
