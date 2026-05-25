@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsEnum, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsDateString, IsEnum, IsOptional, MinLength, IsBoolean, IsArray } from 'class-validator';
 import { AuditType, ProjectStatus } from '@prisma/client';
 
 export class UpdateProjectDto {
@@ -39,4 +39,13 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  aiEnabled?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  aiScopeIds?: string[];
 }

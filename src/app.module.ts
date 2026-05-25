@@ -18,6 +18,8 @@ import { TemplatesModule } from './templates/templates.module';
 import { MailModule } from './mail/mail.module';
 import { ComponentsModule } from './components/components.module';
 import { AttackChainsModule } from './attack-chains/attack-chains.module';
+import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { AttackChainsModule } from './attack-chains/attack-chains.module';
     TemplatesModule,
     ComponentsModule,
     AttackChainsModule,
+    KnowledgeBaseModule,
+    AiModule,
   ],
 })
 export class AppModule {}

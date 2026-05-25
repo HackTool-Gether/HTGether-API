@@ -133,6 +133,7 @@ model User {
   findings       Finding[]
   createdTasks   Task[]
   projectRemarks ProjectRemark[]
+  knowledgeEntries KnowledgeEntry[]
   sentMessages         Message[]        @relation("SentMessages")
   conversationsAsUser1 Conversation[]   @relation("ConversationUser1")
   conversationsAsUser2 Conversation[]   @relation("ConversationUser2")
@@ -161,6 +162,8 @@ model Project {
 
   rolePermissions Json @default("{}")
   kanbanConfig    Json @default("{}")
+  aiEnabled       Boolean @default(false)
+  aiScopeIds      Json    @default("[]")
 
   members       ProjectMember[]
   scopes        Scope[]
@@ -483,6 +486,22 @@ model Attachment {
   message   Message? @relation(fields: [messageId], references: [id])
 
   @@map("attachments")
+}
+
+model KnowledgeEntry {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @default("")
+  type      String   @default("text")
+  scope     String   @default("enterprise")
+  fileName  String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scope, userId])
+  @@map("knowledge_entries")
 }
 
 model PlatformSettings {
