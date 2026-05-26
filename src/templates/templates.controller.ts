@@ -102,7 +102,12 @@ export class TemplatesController {
 
   @Get('assets/file/:filename')
   serveAsset(@Param('filename') filename: string, @Res() res: Response) {
-    const filePath = join(UPLOADS_DIR, filename);
+    const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, '');
+    const filePath = join(UPLOADS_DIR, sanitized);
+    const resolved = require('path').resolve(filePath);
+    if (!resolved.startsWith(require('path').resolve(UPLOADS_DIR))) {
+      throw new NotFoundException('Fichier introuvable');
+    }
     if (!existsSync(filePath)) throw new NotFoundException('Fichier introuvable');
     return res.sendFile(filePath);
   }

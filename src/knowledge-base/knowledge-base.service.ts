@@ -3,10 +3,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateKbEntryDto } from './dto/create-kb-entry.dto';
 import { UpdateKbEntryDto } from './dto/update-kb-entry.dto';
 import * as fs from 'fs';
+import * as path from 'path';
+
+const KB_UPLOADS_DIR = path.resolve('uploads/kb');
 
 @Injectable()
 export class KnowledgeBaseService {
   constructor(private prisma: PrismaService) {}
+
+  private safeReadUpload(filePath: string): string {
+    const resolved = path.resolve(filePath);
+    if (!resolved.startsWith(KB_UPLOADS_DIR)) {
+      throw new ForbiddenException('Chemin de fichier invalide');
+    }
+    return fs.readFileSync(resolved, 'utf-8');
+  }
 
   async findAllEnterprise() {
     return this.prisma.knowledgeEntry.findMany({
@@ -27,7 +38,7 @@ export class KnowledgeBaseService {
   }
 
   async uploadEnterprise(file: Express.Multer.File) {
-    const content = fs.readFileSync(file.path, 'utf-8');
+    const content = this.safeReadUpload(file.path);
     return this.prisma.knowledgeEntry.create({
       data: {
         title: file.originalname.replace(/\.[^.]+$/, ''),
@@ -59,7 +70,7 @@ export class KnowledgeBaseService {
   }
 
   async uploadMine(file: Express.Multer.File, userId: string) {
-    const content = fs.readFileSync(file.path, 'utf-8');
+    const content = this.safeReadUpload(file.path);
     return this.prisma.knowledgeEntry.create({
       data: {
         title: file.originalname.replace(/\.[^.]+$/, ''),

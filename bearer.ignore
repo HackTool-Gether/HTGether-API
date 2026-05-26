@@ -1,0 +1,26 @@
+{
+  "2d7da3d6ce736f9a3c1ad6d1029a7038_0": {
+    "author": "Claquetteuuuh",
+    "comment": "Path validated: resolved path checked against KB_UPLOADS_DIR prefix",
+    "false_positive": true,
+    "ignored_at": "2026-05-26T09:21:12Z"
+  },
+  "68ff123ed7a265422ddca21c8c4da6c1_0": {
+    "author": "Claquetteuuuh",
+    "comment": "Path validated: filename sanitized + resolved path checked against UPLOADS_DIR prefix",
+    "false_positive": true,
+    "ignored_at": "2026-05-26T09:21:14Z"
+  },
+  "68ff123ed7a265422ddca21c8c4da6c1_1": {
+    "author": "Claquetteuuuh",
+    "comment": "Path validated: filename sanitized + resolved path checked against UPLOADS_DIR prefix",
+    "false_positive": true,
+    "ignored_at": "2026-05-26T09:21:15Z"
+  },
+  "73ad4fc1e24ea90733bd5ea98cec998c_0": {
+    "author": "Claquetteuuuh",
+    "comment": "Path validated: resolved path checked against KB_UPLOADS_DIR prefix",
+    "false_positive": true,
+    "ignored_at": "2026-05-26T09:21:13Z"
+  }
+}
