@@ -116,15 +116,35 @@ export class RenderService {
       (a, b) => (severityOrder[a.severity] ?? 5) - (severityOrder[b.severity] ?? 5),
     );
 
+    const fieldToHtml = (value: any): string => {
+      if (!value) return '';
+      let text: string;
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && parsed.type === 'doc') {
+            text = tiptapToText(parsed);
+          } else {
+            text = value;
+          }
+        } catch {
+          text = value;
+        }
+      } else {
+        text = tiptapToText(value);
+      }
+      return marked.parse(text, { async: false }) as string;
+    };
+
     const findingsData = sortedFindings.map((f) => ({
       ...f,
       severity_lower: f.severity.toLowerCase(),
       cvss_score: f.cvssScore != null ? f.cvssScore.toFixed(1) : '—',
       cvss_vector: f.cvssVector || '',
-      description_html: f.description ? marked.parse(typeof f.description === 'string' ? f.description : tiptapToText(f.description), { async: false }) : '',
-      proof_html: f.proof ? marked.parse(typeof f.proof === 'string' ? f.proof : tiptapToText(f.proof), { async: false }) : '',
-      impact_html: f.impact ? marked.parse(typeof f.impact === 'string' ? f.impact : tiptapToText(f.impact), { async: false }) : '',
-      remediation_html: f.remediation ? marked.parse(typeof f.remediation === 'string' ? f.remediation : tiptapToText(f.remediation), { async: false }) : '',
+      description_html: fieldToHtml(f.description),
+      proof_html: fieldToHtml(f.proof),
+      impact_html: fieldToHtml(f.impact),
+      remediation_html: fieldToHtml(f.remediation),
       author_name: f.author ? `${f.author.firstName} ${f.author.lastName}` : '',
       component_name: f.component?.name || '',
     }));
