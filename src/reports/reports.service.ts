@@ -7,6 +7,7 @@ import { PlatformRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { hasPermission } from '../auth/permissions';
 
 @Injectable()
 export class ReportsService {
@@ -36,7 +37,7 @@ export class ReportsService {
     userId: string,
     userRole: string,
   ) {
-    await this.checkProjectAccess(projectId, userId, userRole);
+    await this.requireReportEdit(projectId, userId, userRole);
 
     const existing = await (this.prisma.report as any).findFirst({
       where: { projectId },
@@ -84,7 +85,7 @@ export class ReportsService {
     userId: string,
     userRole: string,
   ) {
-    await this.checkProjectAccess(projectId, userId, userRole);
+    await this.requireReportEdit(projectId, userId, userRole);
 
     return (this.prisma.report as any).create({
       data: {
@@ -107,7 +108,7 @@ export class ReportsService {
     });
     if (!report) throw new NotFoundException('Report not found');
 
-    await this.checkProjectAccess(report.projectId, userId, userRole);
+    await this.requireReportEdit(report.projectId, userId, userRole);
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
@@ -126,7 +127,7 @@ export class ReportsService {
     });
     if (!report) throw new NotFoundException('Report not found');
 
-    await this.checkProjectAccess(report.projectId, userId, userRole);
+    await this.requireReportEdit(report.projectId, userId, userRole);
 
     return (this.prisma.report as any).delete({
       where: { id: reportId },
@@ -135,6 +136,7 @@ export class ReportsService {
 
   // ── Access control ─────────────────────────────────────────────────
 
+  // Read access: any project member (incl. CLIENT) may consult the report.
   private async checkProjectAccess(
     projectId: string,
     userId: string,
@@ -148,5 +150,34 @@ export class ReportsService {
     if (!project) throw new NotFoundException('Project not found');
     const isMember = project.members.some((m) => m.userId === userId);
     if (!isMember) throw new ForbiddenException('Access denied');
+  }
+
+  // Write access: editing the report requires the `report.edit` permission.
+  // CLIENT has no write rights, so they keep read-only access only.
+  private async requireReportEdit(
+    projectId: string,
+    userId: string,
+    userRole: string,
+  ) {
+    if (userRole === PlatformRole.SUPER_ADMIN) return;
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        rolePermissions: true,
+        members: { where: { userId }, select: { role: true } },
+      },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    const member = project.members[0];
+    if (!member) throw new ForbiddenException('Access denied');
+    const overrides = (project.rolePermissions ?? {}) as Record<
+      string,
+      Record<string, boolean>
+    >;
+    if (!hasPermission(member.role, 'report.edit', overrides)) {
+      throw new ForbiddenException(
+        "Vous n'avez pas la permission de modifier le rapport",
+      );
+    }
   }
 }

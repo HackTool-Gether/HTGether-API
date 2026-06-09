@@ -3,11 +3,12 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PlatformRole } from '@prisma/client';
+import { PlatformRole, ProjectRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFindingDto } from './dto/create-finding.dto';
 import { UpdateFindingDto } from './dto/update-finding.dto';
 import { MailService } from '../mail/mail.service';
+import { hasPermission, PermissionKey } from '../auth/permissions';
 
 @Injectable()
 export class FindingsService {
@@ -22,7 +23,7 @@ export class FindingsService {
     userId: string,
     userRole: string,
   ) {
-    await this.checkProjectAccess(projectId, userId, userRole);
+    await this.requirePermission(projectId, userId, userRole, 'findings.create');
 
     // Compute next slug like "PROJECT-001" — stable per project
     const project = await this.prisma.project.findUnique({
@@ -117,6 +118,13 @@ export class FindingsService {
     userRole: string,
   ) {
     const finding = await this.findOne(id, userId, userRole);
+    const member = await this.requirePermission(
+      finding.projectId,
+      userId,
+      userRole,
+      'findings.edit',
+    );
+    this.assertCanTouchFinding(member, finding.authorId, userId);
     return this.prisma.finding.update({
       where: { id: finding.id },
       data: {
@@ -140,6 +148,13 @@ export class FindingsService {
 
   async remove(id: string, userId: string, userRole: string) {
     const finding = await this.findOne(id, userId, userRole);
+    const member = await this.requirePermission(
+      finding.projectId,
+      userId,
+      userRole,
+      'findings.delete',
+    );
+    this.assertCanTouchFinding(member, finding.authorId, userId);
     return this.prisma.finding.delete({ where: { id: finding.id } });
   }
 
@@ -150,6 +165,7 @@ export class FindingsService {
     } as const;
   }
 
+  // Read access: any project member (incl. CLIENT) may consult findings.
   private async checkProjectAccess(
     projectId: string,
     userId: string,
@@ -163,5 +179,50 @@ export class FindingsService {
     if (!project) throw new NotFoundException('Project not found');
     const isMember = project.members.some((m) => m.userId === userId);
     if (!isMember) throw new ForbiddenException('Access denied');
+  }
+
+  // Write access: enforces the project-level permission matrix. Returns the
+  // member's project role (null for SUPER_ADMIN, who bypasses the matrix).
+  private async requirePermission(
+    projectId: string,
+    userId: string,
+    userRole: string,
+    permission: PermissionKey,
+  ): Promise<ProjectRole | null> {
+    if (userRole === PlatformRole.SUPER_ADMIN) return null;
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        rolePermissions: true,
+        members: { where: { userId }, select: { role: true } },
+      },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    const member = project.members[0];
+    if (!member) throw new ForbiddenException('Access denied');
+    const overrides = (project.rolePermissions ?? {}) as Record<
+      string,
+      Record<string, boolean>
+    >;
+    if (!hasPermission(member.role, permission, overrides)) {
+      throw new ForbiddenException(
+        "Vous n'avez pas la permission pour cette action",
+      );
+    }
+    return member.role;
+  }
+
+  // Horizontal partitioning: a PENTESTER may only modify/delete findings they
+  // authored. MANAGER (project lead) and SUPER_ADMIN are exempt.
+  private assertCanTouchFinding(
+    role: ProjectRole | null,
+    authorId: string,
+    userId: string,
+  ) {
+    if (role === ProjectRole.PENTESTER && authorId !== userId) {
+      throw new ForbiddenException(
+        'Vous ne pouvez modifier que vos propres findings',
+      );
+    }
   }
 }
