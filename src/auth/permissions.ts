@@ -28,7 +28,9 @@ export const DEFAULT_PERMISSIONS: PermissionDefaults = {
     'scopes.create': true,
     'scopes.edit': true,
     'members.manage': true,
-    'report.edit': true,
+    // Project lead coordinates but does not write the report (chefferie only).
+    // Can be re-granted per project via the permission overrides.
+    'report.edit': false,
   },
   PENTESTER: {
     'tasks.create': true,
