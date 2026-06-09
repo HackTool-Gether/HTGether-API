@@ -158,7 +158,13 @@ export class RenderService {
     });
 
     const auditTypeLabels: Record<string, string> = {
-      WEB: 'Web', INTERNAL_AD: 'Active Directory interne', LINUX: 'Linux', MOBILE: 'Mobile', OTHER: 'Autre',
+      APP_PENTEST: "Test d'intrusion applicatif",
+      EXTERNAL_PENTEST: "Test d'intrusion externe",
+      INTERNAL_PENTEST: "Test d'intrusion interne",
+      CODE_AUDIT: 'Audit de code',
+      ARCHITECTURE_AUDIT: "Audit d'architecture",
+      CONFIG_AUDIT: 'Audit de configuration',
+      CLOUD_CONFIG_AUDIT: 'Audit de configuration Cloud',
     };
 
     const templateVars: Record<string, any> = {
