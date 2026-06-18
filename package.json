@@ -56,6 +56,10 @@
     "socket.io-client": "^4.8.3",
     "uuid": "^14.0.0"
   },
+  "overrides": {
+    "multer": "^2.2.0",
+    "ws": "^8.21.0"
+  },
   "devDependencies": {
     "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.0.9",
