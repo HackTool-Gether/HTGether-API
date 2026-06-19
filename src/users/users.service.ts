@@ -2,7 +2,9 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
+import { PlatformRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -214,5 +216,44 @@ export class UsersService {
         isActive: true,
       },
     });
+  }
+
+  async remove(id: string, requesterId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    // Safety guards: never delete yourself or the last super admin.
+    if (id === requesterId) {
+      throw new BadRequestException(
+        'Vous ne pouvez pas supprimer votre propre compte',
+      );
+    }
+    if (user.role === PlatformRole.SUPER_ADMIN) {
+      const superAdmins = await this.prisma.user.count({
+        where: { role: PlatformRole.SUPER_ADMIN },
+      });
+      if (superAdmins <= 1) {
+        throw new BadRequestException(
+          'Impossible de supprimer le dernier super administrateur',
+        );
+      }
+    }
+
+    try {
+      await this.prisma.user.delete({ where: { id } });
+    } catch (err: any) {
+      // Foreign-key restriction: the user still owns content (findings,
+      // notes, remarks, tasks, messages...). Guide the admin instead of 500.
+      if (err?.code === 'P2003') {
+        throw new ConflictException(
+          "Cet utilisateur a produit du contenu (findings, notes, messages…). Désactivez-le, ou réassignez son contenu avant de le supprimer.",
+        );
+      }
+      throw err;
+    }
+
+    return { message: 'Utilisateur supprimé' };
   }
 }

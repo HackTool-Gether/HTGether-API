@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Patch,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -15,6 +16,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -55,5 +57,11 @@ export class UsersController {
   @Roles(PlatformRole.SUPER_ADMIN)
   async toggleActive(@Param('id') id: string) {
     return this.usersService.toggleActive(id);
+  }
+
+  @Delete(':id')
+  @Roles(PlatformRole.SUPER_ADMIN)
+  async remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.usersService.remove(id, user.id);
   }
 }
