@@ -318,6 +318,24 @@ export class AuthService {
     });
   }
 
+  // Matches an email against the allowed-domain whitelist.
+  // Supports exact domains (acme.com) and wildcard suffixes (*.acme.com).
+  private isEmailDomainAllowed(
+    domains: { pattern: string }[],
+    email: string,
+  ): boolean {
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    if (!emailDomain) return false;
+    return domains.some((d) => {
+      const pattern = d.pattern.toLowerCase();
+      if (pattern.startsWith('*.')) {
+        const suffix = pattern.slice(2);
+        return emailDomain === suffix || emailDomain.endsWith('.' + suffix);
+      }
+      return emailDomain === pattern;
+    });
+  }
+
   private async findOrCreateExternalUser(
     email: string,
     firstName: string,
@@ -332,6 +350,20 @@ export class AuthService {
     }
 
     if (!user) {
+      // Enforce the domain whitelist on SSO/OIDC/LDAP auto-provisioning.
+      // When a whitelist exists, a brand-new external identity may only be
+      // auto-created if its email domain is allowed. Existing accounts keep
+      // logging in regardless (the whitelist gates account creation, not login).
+      const domains = await this.prisma.allowedDomain.findMany();
+      if (domains.length > 0 && !this.isEmailDomainAllowed(domains, email)) {
+        this.logger.warn(
+          `Blocked ${authProvider} auto-provisioning for ${email}: domain not in whitelist`,
+        );
+        throw new ForbiddenException(
+          "Le domaine de cet email n'est pas autorisé sur cette plateforme",
+        );
+      }
+
       user = await this.prisma.user.create({
         data: {
           email,
@@ -482,21 +514,10 @@ export class AuthService {
     }
 
     // 2. Validate email domain against whitelist
-    const emailDomain = dto.email.split('@')[1]?.toLowerCase();
-    if (!emailDomain) {
+    if (!dto.email.split('@')[1]) {
       throw new BadRequestException('Email invalide');
     }
-
-    const isAllowed = domains.some(d => {
-      const pattern = d.pattern.toLowerCase();
-      if (pattern.startsWith('*.')) {
-        const suffix = pattern.slice(2);
-        return emailDomain === suffix || emailDomain.endsWith('.' + suffix);
-      }
-      return emailDomain === pattern;
-    });
-
-    if (!isAllowed) {
+    if (!this.isEmailDomainAllowed(domains, dto.email)) {
       throw new ForbiddenException('Le domaine de cet email n\'est pas autorisé');
     }
 
