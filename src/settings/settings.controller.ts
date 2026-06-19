@@ -63,13 +63,28 @@ export class SettingsController {
   @Roles(PlatformRole.SUPER_ADMIN)
   @Post('allowed-domains')
   async addAllowedDomain(@Body() dto: { pattern: string }, @CurrentUser('id') userId: string) {
-    const pattern = dto.pattern.trim().toLowerCase();
-    if (!/^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(pattern)) {
-      throw new BadRequestException('Format de domaine invalide. Utilisez domain.com ou *.domain.com');
+    const pattern = (dto.pattern || '').trim().toLowerCase();
+
+    if (!pattern) {
+      throw new BadRequestException('Veuillez saisir un domaine.');
     }
-    return this.prisma.allowedDomain.create({
-      data: { pattern, createdById: userId },
-    });
+    if (!/^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(pattern)) {
+      throw new BadRequestException(
+        'Format de domaine invalide. Indiquez un domaine exact (ex. acme.com) ou ' +
+          'un joker de sous-domaines (ex. *.acme.com). Le joker « * » seul n\'est pas accepté.',
+      );
+    }
+
+    try {
+      return await this.prisma.allowedDomain.create({
+        data: { pattern, createdById: userId },
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new BadRequestException('Ce domaine est déjà dans la liste.');
+      }
+      throw err;
+    }
   }
 
   // Admin: delete domain
