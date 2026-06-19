@@ -741,71 +741,192 @@ const HARDWARE_HTML = `<!DOCTYPE html>
   <title>{{ project_name }}</title>
 </head>
 <body>
+  <!-- Couverture -->
   <div class="cover-page">
     <h1>{{ project_name }}</h1>
-    <p class="subtitle">Audit Hardware / IoT</p>
+    <p class="subtitle">Test d'intrusion IoT / Objets connectés &amp; systèmes embarqués</p>
     <div class="cover-meta">
       <p><strong>Client :</strong> {{ client_company }}</p>
-      <p><strong>Date :</strong> {{ start_date }} — {{ end_date }}</p>
-      <p><strong>Type :</strong> {{ audit_type }}</p>
-      <p><strong>Version firmware :</strong> {{ firmware_version }}</p>
+      <p><strong>Période :</strong> {{ start_date }} — {{ end_date }}</p>
+      <p><strong>Type d'audit :</strong> {{ audit_type }}</p>
+      {{#if product_name}}<p><strong>Produit :</strong> {{ product_name }}</p>{{/if}}
+      {{#if device_model}}<p><strong>Modèle :</strong> {{ device_model }}</p>{{/if}}
+      {{#if firmware_version}}<p><strong>Firmware :</strong> {{ firmware_version }}</p>{{/if}}
     </div>
+    <p class="cover-note">Méthodologie : {{ methodology_reference }}</p>
   </div>
 
+  <!-- Sommaire -->
   <div class="page-break"></div>
   <h2>Sommaire</h2>
   <ol class="toc">
-    <li>Synthese</li>
-    <li>Perimetre</li>
-    <li>Methodologie</li>
-    <li>Analyse firmware</li>
-    <li>Interfaces physiques</li>
-    <li>Communications sans fil</li>
-    <li>Vulnerabilites</li>
+    <li>Résumé exécutif et posture de risque</li>
+    <li>Identification de l'équipement testé (DUT)</li>
+    <li>Périmètre et règles d'engagement</li>
+    <li>Référentiels et méthodologie</li>
+    <li>Matrice de couverture des surfaces d'attaque</li>
+    <li>Constats détaillés (vulnérabilités)</li>
+    <li>Chaînes d'attaque et pivoting</li>
+    <li>Matrice de conformité</li>
     <li>Statistiques</li>
+    <li>Annexes et références</li>
   </ol>
 
+  <!-- 1. Identification de l'équipement testé -->
   <div class="page-break"></div>
-  <h2>Methodologie</h2>
-  <p>L'audit du systeme embarque a suivi une approche en quatre phases :</p>
-  <h3>Reconnaissance hardware</h3>
-  <ul>
-    <li>Identification des composants electroniques (MCU, memoires, radios)</li>
-    <li>Recherche de ports de debug (JTAG, UART, SPI, I2C)</li>
-    <li>Dumping du firmware via interfaces physiques</li>
-  </ul>
-  <h3>Analyse firmware</h3>
-  <ul>
-    <li>Extraction et decompression du firmware (binwalk)</li>
-    <li>Analyse du systeme de fichiers</li>
-    <li>Recherche de secrets et backdoors codes en dur</li>
-    <li>Revue des mecanismes de mise a jour (signature, chiffrement)</li>
-  </ul>
-  <h3>Interfaces de communication</h3>
-  <ul>
-    <li>Analyse des protocoles radio (BLE, ZigBee, LoRa, Z-Wave)</li>
-    <li>Interception des communications serie</li>
-    <li>Tests des API cloud associees</li>
-  </ul>
-  <h3>Exploitation</h3>
-  <ul>
-    <li>Injection de firmware modifie</li>
-    <li>Attaques par canaux auxiliaires (glitching, SCA)</li>
-    <li>Contournement des protections de debug</li>
-  </ul>
-  <p><strong>Outils :</strong> {{ tools_used }}</p>
+  <h2>Identification de l'équipement testé (DUT)</h2>
+  <p>Le présent rapport documente le test d'intrusion de l'unité physique ci-dessous. L'empreinte du firmware garantit la traçabilité et la reproductibilité du re-test.</p>
+  <table class="meta-table">
+    <tbody>
+      {{#if product_name}}<tr><th>Nom commercial</th><td>{{ product_name }}</td></tr>{{/if}}
+      {{#if device_model}}<tr><th>Modèle</th><td>{{ device_model }}</td></tr>{{/if}}
+      {{#if hardware_revision}}<tr><th>Révision matérielle / PCB</th><td>{{ hardware_revision }}</td></tr>{{/if}}
+      {{#if firmware_version}}<tr><th>Version firmware</th><td>{{ firmware_version }}</td></tr>{{/if}}
+      {{#if firmware_sha256}}<tr><th>Empreinte SHA-256</th><td class="mono">{{ firmware_sha256 }}</td></tr>{{/if}}
+      {{#if fcc_id}}<tr><th>FCC ID</th><td class="mono">{{ fcc_id }}</td></tr>{{/if}}
+      {{#if serial_batch}}<tr><th>N° de série / lot</th><td>{{ serial_batch }}</td></tr>{{/if}}
+      {{#if chipset_inventory}}<tr><th>Composants (MCU, flash, radio)</th><td>{{ chipset_inventory }}</td></tr>{{/if}}
+      {{#if radio_protocols}}<tr><th>Protocoles radio</th><td>{{ radio_protocols }}</td></tr>{{/if}}
+    </tbody>
+  </table>
 
+  <!-- 2. Périmètre et règles d'engagement -->
+  <div class="page-break"></div>
+  <h2>Périmètre et règles d'engagement</h2>
+  <p>Conformément à la phase de pré-engagement (PTES), les vecteurs et contraintes opérationnelles ont été cadrés avec le client avant toute manipulation.</p>
+  <table class="meta-table">
+    <tbody>
+      {{#if ecosystem_scope}}<tr><th>Périmètre écosystème</th><td>{{ ecosystem_scope }}</td></tr>{{/if}}
+      {{#if companion_app}}<tr><th>Application compagnon</th><td>{{ companion_app }}</td></tr>{{/if}}
+      {{#if cloud_backend}}<tr><th>Backend cloud / API</th><td>{{ cloud_backend }}</td></tr>{{/if}}
+      {{#if physical_access_level}}<tr><th>Niveau d'accès physique (ISTG)</th><td>{{ physical_access_level }}</td></tr>{{/if}}
+      {{#if teardown_authorized}}<tr><th>Démontage destructif / chip-off</th><td>{{ teardown_authorized }}</td></tr>{{/if}}
+      {{#if bricking_tolerance}}<tr><th>Tolérance au bricking</th><td>{{ bricking_tolerance }}</td></tr>{{/if}}
+      {{#if rf_emission_limits}}<tr><th>Contraintes RF</th><td>{{ rf_emission_limits }}</td></tr>{{/if}}
+    </tbody>
+  </table>
+  {{#if scopes.length}}
+  <h3>Périmètres techniques</h3>
+  <table>
+    <thead><tr><th>Périmètre</th><th>Description</th><th>Statut</th></tr></thead>
+    <tbody>
+      {{#each scopes}}
+      <tr><td>{{ this.name }}</td><td>{{ this.description }}</td><td>{{ this.status }}</td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+
+  <!-- 3. Référentiels et méthodologie -->
+  <div class="page-break"></div>
+  <h2>Référentiels et méthodologie</h2>
+  <p>L'audit croise trois cadres reconnus : le modèle composant en 8 surfaces de l'<strong>OWASP IoT Security Testing Guide (ISTG, 2024)</strong>, les 9 étapes de l'<strong>OWASP Firmware Security Testing Methodology (FSTM)</strong> pour le firmware, et les 7 phases du <strong>PTES</strong> pour l'engagement. Chaque constat est rattaché à un identifiant de cas de test ISTG (ex. <span class="mono">ISTG-FW-INFO-001</span>) et classé selon l'<strong>OWASP IoT Top 10 (2018)</strong>. Le modèle attaquant ISTG (accès physique PA-1 à PA-4, authentification AA-1 à AA-4) cadre les hypothèses de menace.</p>
+  <p class="ref-line"><strong>Référentiels mobilisés :</strong> OWASP ISTG · OWASP FSTM · OWASP ISVS (Pre-release 1.0RC) · OWASP IoT Top 10 (2018) · ETSI EN 303 645 V3.1.3 · NIST IR 8259A / 8425 · IoTSF Security Assurance Framework · OWASP MASVS v2.0 / MASTG (application compagnon) · OWASP API Security Top 10 (API1 BOLA).</p>
+
+  <h3>1. Reconnaissance et modélisation des menaces</h3>
+  <ul>
+    <li>Pré-engagement et règles d'engagement (vecteurs autorisés, tolérance au bricking, démontage)</li>
+    <li>Collecte d'informations (FSTM étape 1) : documentation, FCC ID, datasheets, firmware fournisseur</li>
+    <li>Décomposition de l'écosystème en surfaces ISTG et cartographie des frontières de confiance</li>
+    <li>Modélisation des menaces et priorisation des chemins de pivoting inter-couches</li>
+  </ul>
+  <h3>2. Sécurité matérielle et interfaces de débogage</h3>
+  <ul>
+    <li>Reconnaissance PCB, identification des composants, repérage des test points / headers</li>
+    <li>Découverte et exploitation UART (shell root, interruption du bootloader U-Boot)</li>
+    <li>Découverte JTAG/SWD : halt, single-step, dump de flash, contournement de read-out protection</li>
+    <li>Dump de flash SPI NOR / EEPROM I2C en circuit (clip SOIC-8) ; chip-off eMMC/NAND si verrouillé</li>
+    <li>Fault injection (glitch tension/horloge/EM) et canaux auxiliaires (DPA/CPA) pour bypass secure boot / récupération de clés</li>
+  </ul>
+  <p class="tools-line"><strong>Outils :</strong> {{ hardware_tools }}</p>
+  <h3>3. Extraction et analyse du firmware (FSTM)</h3>
+  <ul>
+    <li>Acquisition de l'image (téléchargement, capture OTA, dump matériel ou chip-off)</li>
+    <li>Extraction du système de fichiers (scan signature/entropie, extraction récursive)</li>
+    <li>Chasse aux secrets codés en dur : comptes backdoor, clés privées, certificats TLS, tokens API</li>
+    <li>Rétro-ingénierie des binaires (ARM/MIPS) et recherche de fonctions de debug/backdoor</li>
+    <li>Émulation et analyse dynamique ; SBOM et corrélation CVE des composants obsolètes</li>
+  </ul>
+  <p class="tools-line"><strong>Outils :</strong> {{ firmware_tools }}</p>
+  <h3>4. Services réseau et interface d'administration</h3>
+  <ul>
+    <li>Scan TCP/UDP et fingerprinting (telnet, SSH, FTP, UPnP/SSDP, mDNS, RTSP, propriétaires)</li>
+    <li>Authentifications par défaut/faibles/absentes, fuzzing de protocoles</li>
+    <li>Interface web/admin : contournement d'auth, CSRF, XSS, injection de commandes, IDOR, abus d'upload firmware</li>
+    <li>Courtiers MQTT/CoAP : accès anonyme, abonnement wildcard, abus d'ACL de topics</li>
+  </ul>
+  <h3>5. Communications, TLS et tests radio/RF</h3>
+  <ul>
+    <li>MITM appareil-cloud/app : version TLS, validation de certificat (self-signed, nom d'hôte, pinning), downgrade en clair</li>
+    <li>BLE : sniffing, faiblesse d'appairage Just Works, downgrade LE Secure Connections, hijack</li>
+    <li>Zigbee/Z-Wave : sniff/replay, extraction de clé, downgrade S2→S0 (Z-Shave)</li>
+    <li>LoRaWAN : rejeu DevNonce/FCnt sur implémentations faibles, DoS de jointure (Join Requests en clair mais authentifiées par MIC)</li>
+    <li>Wi-Fi : deauth, capture handshake/PMKID, evil-twin ; sub-GHz : rejeu de code fixe, défaite de rolling code (RollJam)</li>
+  </ul>
+  <p class="tools-line"><strong>Outils :</strong> {{ radio_tools }}</p>
+  <h3>6. Backend cloud, API fournisseur et écosystème</h3>
+  <ul>
+    <li>Cartographie des endpoints API depuis le trafic mobile intercepté</li>
+    <li>Autorisation inter-utilisateur/inter-appareil (BOLA/IDOR) : permutation d'ID d'appareil, série, MAC</li>
+    <li>Prise de contrôle de propriété via le flux de revendication d'appareil (device-claiming)</li>
+    <li>Mass assignment, rate limiting, injections ; frontières de confiance vers clouds tiers (tokens OAuth)</li>
+  </ul>
+  <h3>7. Application mobile compagnon (MASVS / MASTG)</h3>
+  <ul>
+    <li>Analyse statique : secrets/endpoints/clés codés en dur, stockage local, certificats client embarqués</li>
+    <li>Analyse dynamique : interception, contournement du certificate pinning, résilience root/Frida</li>
+    <li>Traçage des API de contrôle et des tokens pour alimenter les tests d'autorisation cloud</li>
+  </ul>
+  <h3>8. Mécanisme de mise à jour / OTA</h3>
+  <ul>
+    <li>Vérification de signature et d'intégrité (rejet d'images non signées même depuis un serveur compromis)</li>
+    <li>Chiffrement du canal (TLS/mTLS), protection anti-rollback/downgrade</li>
+    <li>Spoofing/MITM du serveur de mise à jour par injection d'images modifiées</li>
+  </ul>
+  <h3>9. Exploitation, post-exploitation et reporting</h3>
+  <ul>
+    <li>Développement de PoC, élévation de privilèges, exécution de code (FSTM étape 9)</li>
+    <li>Pivoting inter-couches démontrant l'effondrement de la chaîne de confiance et le rayon d'impact flotte</li>
+    <li>Notation IoT-aware : CVSS complété de l'accès physique requis, du blast radius et de la chaîne de confiance</li>
+  </ul>
+
+  <!-- 4. Matrice de couverture -->
+  <div class="page-break"></div>
+  <h2>Matrice de couverture des surfaces d'attaque</h2>
+  <p>Surfaces d'attaque IoT (modèle OWASP ISTG / IoT Attack Surface) et techniques de test associées.</p>
+  <table class="coverage-table">
+    <thead><tr><th>Surface d'attaque</th><th>Tests réalisés</th></tr></thead>
+    <tbody>
+      <tr><td>Interfaces physiques (ISTG-PHY / INT)</td><td>Énumération UART/JTAG/SWD/SPI/I2C, shell root, dump de flash / chip-off, tamper, canaux auxiliaires &amp; fault injection</td></tr>
+      <tr><td>Firmware (ISTG-FW / FSTM)</td><td>Acquisition, extraction du FS, secrets codés en dur, backdoors, CVE connues (SBOM), crypto, rétro-ingénierie, émulation</td></tr>
+      <tr><td>Mémoire (ISTG-MEM)</td><td>Lecture flash/EEPROM, chiffrement au repos, read-out protection, récupération de clés/tokens</td></tr>
+      <tr><td>Services réseau (ISTG-DES)</td><td>Scan TCP/UDP, fingerprinting, auth par défaut/faibles, fuzzing, MQTT/CoAP, résilience DoS</td></tr>
+      <tr><td>Interface web / admin (ISTG-UI)</td><td>Creds par défaut, contournement d'auth, session, CSRF, XSS, injection, IDOR, upload firmware</td></tr>
+      <tr><td>Stockage local</td><td>Données sensibles non chiffrées, config/identifiants en clair, permissions faibles, élément sécurisé</td></tr>
+      <tr><td>Communications / TLS</td><td>MITM, version/cipher TLS, validation de certificat, pinning, downgrade, rejeu</td></tr>
+      <tr><td>Radio / RF (ISTG-WRLS)</td><td>BLE, Zigbee/Z-Wave, Wi-Fi, LoRaWAN, sub-GHz : appairage, chiffrement, replay, downgrade, extraction de clé</td></tr>
+      <tr><td>Backend cloud / API</td><td>Authn/authz, BOLA/IDOR, device-claiming, mass assignment, ACL MQTT, rate limiting, injections</td></tr>
+      <tr><td>Application mobile compagnon</td><td>Secrets statiques, stockage local, cert-pinning, interception, deeplinks, API de contrôle</td></tr>
+      <tr><td>Mise à jour / OTA (ISTG-FW UPDT)</td><td>Signature/intégrité, chiffrement du canal, anti-rollback, MITM/spoofing du serveur</td></tr>
+      <tr><td>Vie privée / données</td><td>Données personnelles collectées/transmises, collecte excessive, exposition tiers, fuite de métadonnées</td></tr>
+      <tr><td>Secure boot / chaîne de confiance</td><td>Vérification de chaque étape de boot, fault injection sur la branche de contrôle, ports de debug non fusionnés</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Sections rédigées (synthèse, narratif…) -->
   {{#each sections}}
   <div class="page-break"></div>
   <h2>{{ this.title }}</h2>
   <div class="section-content">{{{ this.content_html }}}</div>
   {{/each}}
 
+  <!-- 5. Constats détaillés -->
   <div class="page-break"></div>
-  <h2>Vulnerabilites</h2>
+  <h2>Constats détaillés (vulnérabilités)</h2>
+  <p class="rating-note">Notation IoT-aware : le score CVSS est complété, en commentaire de chaque constat, par le niveau d'accès physique requis, le rayon d'impact à l'échelle de la flotte (blast radius) et l'éventuel effondrement de la chaîne de confiance.</p>
   <table class="findings-table">
     <thead>
-      <tr><th>Ref</th><th>Titre</th><th>Severite</th><th>CVSS</th><th>Statut</th></tr>
+      <tr><th>Réf</th><th>Titre</th><th>Sévérité</th><th>CVSS</th><th>Statut</th></tr>
     </thead>
     <tbody>
       {{#each findings}}
@@ -830,13 +951,46 @@ const HARDWARE_HTML = `<!DOCTYPE html>
     <h3>{{ this.title }}</h3>
     {{#if this.cvss_vector}}<p class="cvss mono">CVSS : {{ this.cvss_score }} — {{ this.cvss_vector }}</p>{{/if}}
     {{#if this.description_html}}<h4>Description</h4><div>{{{ this.description_html }}}</div>{{/if}}
-    {{#if this.proof_html}}<h4>Preuve</h4><div>{{{ this.proof_html }}}</div>{{/if}}
+    {{#if this.proof_html}}<h4>Preuve de concept</h4><div>{{{ this.proof_html }}}</div>{{/if}}
     {{#if this.impact_html}}<h4>Impact</h4><div>{{{ this.impact_html }}}</div>{{/if}}
-    {{#if this.remediation_html}}<h4>Remediation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
-    {{#if this.references}}<h4>References</h4><p>{{ this.references }}</p>{{/if}}
+    {{#if this.remediation_html}}<h4>Remédiation</h4><div>{{{ this.remediation_html }}}</div>{{/if}}
+    {{#if this.references}}<h4>Références</h4><p>{{ this.references }}</p>{{/if}}
   </div>
   {{/each}}
 
+  <!-- 6. Chaînes d'attaque -->
+  {{#if attack_chains.length}}
+  <div class="page-break"></div>
+  <h2>Chaînes d'attaque et pivoting</h2>
+  <p>Démonstration des chemins d'exploitation inter-couches (ex. shell root UART → firmware extrait → clés → API cloud → compromission de flotte).</p>
+  {{#each attack_chains}}
+  <div class="chain">
+    <h3>{{ this.name }}</h3>
+    {{#if this.description_html}}<div class="section-content">{{{ this.description_html }}}</div>{{/if}}
+    <ol class="chain-steps">
+      {{#each this.findings}}
+      <li><span class="severity severity-{{ this.severity_lower }}">{{ this.severity }}</span> {{ this.title }} <span class="mono">{{ this.slug }}</span></li>
+      {{/each}}
+    </ol>
+  </div>
+  {{/each}}
+  {{/if}}
+
+  <!-- 7. Matrice de conformité -->
+  <div class="page-break"></div>
+  <h2>Matrice de conformité</h2>
+  <p>Cible de conformité : <strong>{{ compliance_baseline }}</strong>{{#if assurance_class}} — classe d'assurance visée : <strong>{{ assurance_class }}</strong>{{/if}}. Les constats sont rattachés aux référentiels ci-dessous.</p>
+  <table class="meta-table">
+    <tbody>
+      <tr><th>ETSI EN 303 645 V3.1.3</th><td>13 provisions de la clause 5 (pas de mot de passe par défaut, mises à jour, stockage sécurisé, communications sécurisées…) + clause 6 (données personnelles)</td></tr>
+      <tr><th>OWASP ISVS (Pre-release 1.0RC)</th><td>V1 Écosystème · V2 Application · V3 Plateforme logicielle · V4 Communication · V5 Plateforme matérielle</td></tr>
+      <tr><th>NIST IR 8259A / 8425</th><td>6 capacités cœur de l'appareil ; profil produit grand public (socle du FCC Cyber Trust Mark)</td></tr>
+      <tr><th>IoTSF Security Assurance Framework</th><td>Détermination de la classe d'assurance (0 à 4) et preuve exigence par exigence</td></tr>
+      <tr><th>EU RED EN 18031 / CRA</th><td>Cybersécurité des équipements radio (obligatoire depuis le 01/08/2025) ; SBOM machine-readable (CRA)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8. Statistiques -->
   <div class="page-break"></div>
   <h2>Statistiques</h2>
   <div class="stats-grid">
@@ -847,8 +1001,44 @@ const HARDWARE_HTML = `<!DOCTYPE html>
     <div class="stat stat-low"><span class="stat-value">{{ findings_low }}</span><span class="stat-label">Basses</span></div>
     <div class="stat stat-info"><span class="stat-value">{{ findings_info }}</span><span class="stat-label">Info</span></div>
   </div>
+
+  <!-- 9. Annexes et références -->
+  <div class="page-break"></div>
+  <h2>Annexes et références</h2>
+  <p>Livrables d'annexe : liste des outils, photos de démontage et d'interfaces, identification des puces (datasheets), empreintes des images firmware, SBOM (CycloneDX/SPDX), captures PCAP/IQ et code des PoC.</p>
+  <h3>Références méthodologiques</h3>
+  <ul class="ref-list">
+    <li>OWASP Firmware Security Testing Methodology (FSTM)</li>
+    <li>OWASP IoT Security Testing Guide (ISTG, 2024)</li>
+    <li>OWASP IoT Security Verification Standard (ISVS, Pre-release 1.0RC)</li>
+    <li>OWASP IoT Top 10 (2018) &amp; IoT Attack Surface Areas</li>
+    <li>ETSI EN 303 645 V3.1.3 (2024-09) — Cyber Security for Consumer IoT</li>
+    <li>NIST IR 8259A &amp; NIST IR 8425 (profil IoT grand public)</li>
+    <li>IoT Security Foundation — Security Assurance Framework</li>
+    <li>OWASP MASVS v2.0 &amp; MASTG (application mobile compagnon)</li>
+    <li>OWASP API Security Top 10 — API1:2023 BOLA</li>
+    <li>PTES — Penetration Testing Execution Standard</li>
+  </ul>
 </body>
 </html>`;
+
+const HARDWARE_CSS =
+  LIBRARY_CSS +
+  `
+.cover-note { font-size: 10pt; color: #888; margin-top: 24pt; }
+.meta-table th { width: 38%; background: #f8f8fc; color: #444; font-weight: 600; vertical-align: top; }
+.meta-table td { vertical-align: top; }
+.coverage-table th:first-child { width: 34%; }
+.coverage-table td { font-size: 9pt; }
+.ref-line { font-size: 9.5pt; color: #555; background: #f8f8fc; border-left: 3pt solid #5e6ad2; padding: 8pt 12pt; border-radius: 4pt; }
+.tools-line { font-size: 9.5pt; color: #5e6ad2; margin: 4pt 0 12pt; }
+.rating-note { font-size: 9.5pt; color: #555; font-style: italic; margin-bottom: 10pt; }
+.chain { margin-bottom: 16pt; }
+.chain-steps { padding-left: 18pt; }
+.chain-steps li { margin-bottom: 5pt; }
+.ref-list { padding-left: 18pt; }
+.ref-list li { margin-bottom: 4pt; font-size: 9.5pt; }
+`;
 
 // ---------------------------------------------------------------------------
 // 7. API REST / GraphQL
@@ -1476,28 +1666,40 @@ export const TEMPLATE_LIBRARY: LibraryEntry[] = [
   },
   {
     slug: 'hardware',
-    name: 'Pentest Hardware / IoT',
+    name: 'Pentest IoT / Hardware & systèmes embarqués',
     description:
-      "Template pour audits de systemes embarques, IoT et hardware",
+      "Audit de sécurité IoT bout-en-bout (matériel, firmware, radio/RF, services réseau, backend cloud/API, app compagnon), aligné OWASP FSTM / ISTG / ISVS, ETSI EN 303 645 et NIST IR 8259A/8425",
     category: 'hardware',
     htmlContent: HARDWARE_HTML,
-    cssContent: LIBRARY_CSS,
+    cssContent: HARDWARE_CSS,
     variables: [
-      {
-        id: 'firmware_version',
-        label: 'Version firmware',
-        type: 'string',
-        category: 'Perimetre',
-        required: false,
-      },
-      {
-        id: 'tools_used',
-        label: 'Outils utilises',
-        type: 'string',
-        category: 'Methodologie',
-        defaultValue: 'binwalk, Ghidra, Logic Analyzer, Bus Pirate, nRF Connect',
-        required: false,
-      },
+      // Identification de l'équipement testé (DUT)
+      { id: 'product_name', label: 'Nom commercial du produit', type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'device_model', label: "Modèle de l'appareil", type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'hardware_revision', label: 'Révision matérielle / PCB', type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'firmware_version', label: 'Version du firmware', type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'firmware_sha256', label: "Empreinte SHA-256 de l'image firmware", type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'fcc_id', label: 'FCC ID', type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'serial_batch', label: 'Numéro de série / lot', type: 'string', category: 'Identification (DUT)', required: false },
+      { id: 'chipset_inventory', label: 'Inventaire des composants (MCU/SoC, flash, radio)', type: 'string', category: 'Identification (DUT)', required: false },
+      // Périmètre
+      { id: 'radio_protocols', label: 'Protocoles radio supportés', type: 'string', category: 'Périmètre', defaultValue: 'Wi-Fi, BLE, Zigbee', required: false },
+      { id: 'ecosystem_scope', label: 'Périmètre écosystème (appareil / passerelle / cloud / app)', type: 'string', category: 'Périmètre', defaultValue: 'Appareil, Cloud/API, Application mobile', required: false },
+      { id: 'companion_app', label: 'Application mobile compagnon (nom / plateformes)', type: 'string', category: 'Périmètre', required: false },
+      { id: 'cloud_backend', label: 'Backend cloud / endpoints API', type: 'string', category: 'Périmètre', required: false },
+      // Règles d'engagement
+      { id: 'physical_access_level', label: "Niveau d'accès physique (modèle ISTG PA-1..PA-4)", type: 'string', category: "Règles d'engagement", defaultValue: 'PA-3 (ouverture du boîtier autorisée)', required: false },
+      { id: 'teardown_authorized', label: 'Démontage destructif / chip-off autorisé', type: 'string', category: "Règles d'engagement", defaultValue: 'Oui', required: false },
+      { id: 'bricking_tolerance', label: 'Tolérance au bricking / perte de données', type: 'string', category: "Règles d'engagement", defaultValue: 'Unités de test sacrificielles fournies', required: false },
+      { id: 'rf_emission_limits', label: "Contraintes / limites d'émission RF", type: 'string', category: "Règles d'engagement", defaultValue: 'Banc isolé / cage de Faraday', required: false },
+      // Méthodologie
+      { id: 'methodology_reference', label: 'Référence méthodologique', type: 'string', category: 'Méthodologie', defaultValue: 'OWASP FSTM + OWASP ISTG (2024) + PTES', required: false },
+      { id: 'hardware_tools', label: 'Outils matériels utilisés', type: 'string', category: 'Méthodologie', defaultValue: 'Tigard, JTAGulator, Saleae, flashrom/CH341A, ChipWhisperer', required: false },
+      { id: 'firmware_tools', label: "Outils d'analyse firmware utilisés", type: 'string', category: 'Méthodologie', defaultValue: 'binwalk, unblob, EMBA, Ghidra, firmwalker, TruffleHog', required: false },
+      { id: 'radio_tools', label: 'Outils radio/RF utilisés', type: 'string', category: 'Méthodologie', defaultValue: 'HackRF One, Sniffle, Ubertooth One, KillerBee, YARD Stick One, URH', required: false },
+      // Conformité
+      { id: 'compliance_baseline', label: 'Référentiel de conformité ciblé', type: 'string', category: 'Conformité', defaultValue: 'ETSI EN 303 645 V3.1.3 + EN 18031 (RED)', required: false },
+      { id: 'assurance_class', label: "Classe d'assurance IoTSF visée", type: 'string', category: 'Conformité', defaultValue: 'Classe 2', required: false },
     ],
   },
   {
